@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   build:
     name: Build and Release
@@ -24,7 +27,7 @@ jobs:
           - platform: 'ubuntu-24.04'
             rust-target: ''
             args: ''
-          - platform: 'windows-latest'
+          - platform: 'windows-2025'
             rust-target: ''
             args: ''
     runs-on: ${{ matrix.platform }}
@@ -35,7 +38,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install Rust
