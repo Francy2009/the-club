@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
-import { loginFn } from '../lib/api.functions'
+import { loginFn } from '../lib/api'
 import { ShieldAlert, LogIn, Lock, User } from 'lucide-react'
 
 export const Route = createFileRoute('/login')({

@@ -1,6 +1,6 @@
 import { Link, useRouteContext, useRouter } from '@tanstack/react-router'
 import ThemeToggle from './ThemeToggle'
-import { logoutFn } from '../lib/api.functions'
+import { logoutFn } from '../lib/api'
 import { FileText, Home, LogOut, Shield, User, QrCode, ClipboardList, LogIn, CalendarCheck, Settings } from 'lucide-react'
 
 export default function Header() {

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useLoaderData } from '@tanstack/react-router'
 import { useMemo, useState, useEffect, useRef } from 'react'
-import { getCheckInMembersFn, getTodayAttendanceFn, registerAttendanceFn } from '../../lib/api.functions'
+import { getCheckInMembersFn, getTodayAttendanceFn, registerAttendanceFn } from '../../lib/api'
 import { Scanner } from '@yudiel/react-qr-scanner'
 import type { IDetectedBarcode, IScannerError } from '@yudiel/react-qr-scanner'
 import { QrCode, ArrowLeft, ShieldAlert, CheckCircle2, AlertTriangle, Play, Pause, History, Keyboard, Search, UserCheck, Users, Clock } from 'lucide-react'

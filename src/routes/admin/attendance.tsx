@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useRouter, useLoaderData } from '@tanstack/react-router'
 import { useState } from 'react'
-import { getTodayAttendanceFn, deleteAttendanceFn } from '../../lib/api.functions'
+import { getTodayAttendanceFn, deleteAttendanceFn } from '../../lib/api'
 import { ArrowLeft, Clock, Search, Trash2, CheckCircle, BarChart3, AlertCircle } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/attendance')({

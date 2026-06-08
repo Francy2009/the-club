@@ -152,7 +152,7 @@ function App() {
               <article className="island-shell feature-card rounded-2xl p-4 sm:col-span-2 sm:p-6 lg:col-span-1">
                 <span className="island-kicker mb-2 block">Sicurezza & Privacy</span>
                 <div className="mt-2 text-sm text-[var(--sea-ink-soft)]">
-                  I dati del club sono memorizzati interamente nel database locale SQLite e le credenziali sono crittografate.
+                  I dati del club sono memorizzati interamente in locale e le credenziali sono protette.
                 </div>
                 <div className="flex items-center gap-1.5 mt-4 text-xs text-emerald-500 font-semibold">
                   <CheckCircle className="w-4 h-4" />
@@ -230,7 +230,7 @@ function App() {
             },
             {
               title: 'Zero Cloud, Massima Sicurezza',
-              desc: 'Tutto funziona in locale su un database SQLite sicuro. Dati soci e storico presenze restano sul computer del club.',
+              desc: 'Tutto funziona in locale. Dati soci e storico presenze restano sul computer del club.',
               icon: Shield,
               color: 'text-emerald-500',
             },

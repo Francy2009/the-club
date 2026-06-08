@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
-import { getAttendanceLogsFn, deleteAttendanceFn } from '../../lib/api.functions'
+import { getAttendanceLogsFn, deleteAttendanceFn } from '../../lib/api'
 import { jsPDF } from 'jspdf'
 import { ArrowLeft, Search, Trash2, CheckCircle, AlertCircle, CalendarDays, Clock, Users, Download } from 'lucide-react'
 

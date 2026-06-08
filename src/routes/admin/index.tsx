@@ -7,7 +7,7 @@ import {
   renewMembershipFn, 
   getTodayAttendanceFn, 
   deleteMemberFn
-} from '../../lib/api.functions'
+} from '../../lib/api'
 import { 
   UserPlus, 
   Search, 

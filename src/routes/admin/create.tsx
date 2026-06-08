@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { createMemberFn } from '../../lib/api.functions'
+import { createMemberFn } from '../../lib/api'
 import { QRCodeCanvas } from 'qrcode.react'
 import { jsPDF } from 'jspdf'
 import { UserPlus, ShieldAlert, ArrowLeft, Download, Award, ShieldCheck } from 'lucide-react'

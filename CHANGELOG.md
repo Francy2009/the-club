@@ -7,6 +7,14 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-06-08
+
+### Corretto
+- AppImage desktop con autenticazione e dati locali senza chiamare server functions non disponibili.
+- Validazione dello stato utente per evitare profili corrotti con valori `undefined` e date non valide.
+- Stato iniziale TanStack serializzato senza byte NUL grezzi nell'HTML desktop.
+- Testi residui dello starter rimossi dalle schermate pubbliche.
+
 ## [1.0.7] - 2026-06-08
 
 ### Corretto
@@ -63,7 +71,8 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 - Autenticazione JWT + bcrypt
 - TypeScript strict mode
 
-[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.7...HEAD
+[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.8...HEAD
+[1.0.8]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.4...v1.0.5

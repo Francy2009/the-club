@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useLoaderData } from '@tanstack/react-router'
 import { jsPDF } from 'jspdf'
-import { getMonthlySummaryFn } from '../../lib/api.functions'
+import { getMonthlySummaryFn } from '../../lib/api'
 import { AlertTriangle, ArrowLeft, CalendarDays, ClipboardList, Download, FileText, Users } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/riepilogo')({

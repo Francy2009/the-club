@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   Upload,
 } from 'lucide-react'
-import { changeAdminPasswordFn, exportBackupFn, restoreBackupFn } from '../../lib/api.functions'
+import { changeAdminPasswordFn, exportBackupFn, restoreBackupFn } from '../../lib/api'
 
 const MAX_BACKUP_FILE_BYTES = 20 * 1024 * 1024
 

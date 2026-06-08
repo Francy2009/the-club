@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
-import { getCurrentUserFn } from '../lib/api.functions'
+import { getCurrentUserFn } from '../lib/api'
 
 import appCss from '../styles.css?url'
 
@@ -51,6 +51,37 @@ export interface RouterContext {
     must_setup: boolean;
     role: string;
   } | null;
+}
+
+function normalizeUser(value: unknown): RouterContext['user'] {
+  if (!value || typeof value !== 'object') return null
+  const user = value as Partial<NonNullable<RouterContext['user']>>
+  if (
+    typeof user.id !== 'string' ||
+    typeof user.first_name !== 'string' ||
+    typeof user.last_name !== 'string' ||
+    typeof user.username !== 'string' ||
+    typeof user.joined_at !== 'string' ||
+    typeof user.password_changed !== 'boolean' ||
+    typeof user.must_setup !== 'boolean' ||
+    (user.role !== 'admin' && user.role !== 'user')
+  ) {
+    return null
+  }
+
+  return {
+    id: user.id,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    member_number: typeof user.member_number === 'string' ? user.member_number : null,
+    qr_token: typeof user.qr_token === 'string' ? user.qr_token : null,
+    username: user.username,
+    joined_at: user.joined_at,
+    expiry_date: typeof user.expiry_date === 'string' ? user.expiry_date : null,
+    password_changed: user.password_changed,
+    must_setup: user.must_setup,
+    role: user.role,
+  }
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
@@ -100,7 +131,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   }),
   beforeLoad: async ({ location }) => {
     try {
-      const user = await getCurrentUserFn();
+      const user = normalizeUser(await getCurrentUserFn());
       if (user && user.must_setup && location.pathname !== '/setup') {
         throw redirect({ to: '/setup' });
       }

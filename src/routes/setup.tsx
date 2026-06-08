@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useRouter, useRouteContext } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { setupValidator } from '../lib/api.functions'
+import { setupValidator } from '../lib/api'
 import { Lock, ShieldCheck, ShieldAlert, Check, X, User } from 'lucide-react'
 import { z } from 'zod'
 

@@ -16,4 +16,6 @@ for (const [from, to] of replacements) {
   html = html.split(from).join(to)
 }
 
+html = html.split('\u0000').join('\\u0000')
+
 writeFileSync(indexPath, html)
