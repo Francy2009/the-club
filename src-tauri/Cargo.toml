@@ -1,6 +1,6 @@
 [package]
 name = "gestore-pub"
-version = "1.0.4"
+version = "1.0.6"
 description = "Gestore Pub - Club Privato Management"
 edition = "2021"
 authors = ["Francesco Dell'Orto"]

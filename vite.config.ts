@@ -8,6 +8,7 @@ import tailwindcss from '@tailwindcss/vite'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 
 const config = defineConfig(({ command, mode }) => ({
+  base: mode === 'tauri' ? './' : undefined,
   resolve: { tsconfigPaths: true },
   preview: {
     host: '127.0.0.1',
