@@ -62,7 +62,8 @@ jobs:
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          # macOS dependencies are handled by Tauri
+          # Install Xcode command line tools and dependencies for Tauri v2
+          xcode-select --install 2>/dev/null || true
 
       - name: Install frontend dependencies
         run: npm ci
@@ -71,7 +72,7 @@ jobs:
         run: npm run build:tauri
 
       - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0.6.0
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
