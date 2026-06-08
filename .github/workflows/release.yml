@@ -15,10 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest'
+          - platform: 'macos-15'
             rust-target: 'aarch64-apple-darwin'
             args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest'
+          - platform: 'macos-15-intel'
             rust-target: 'x86_64-apple-darwin'
             args: '--target x86_64-apple-darwin'
           - platform: 'ubuntu-24.04'
@@ -62,8 +62,7 @@ jobs:
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          # Install Xcode command line tools and dependencies for Tauri v2
-          xcode-select --install 2>/dev/null || true
+          xcode-select -p
 
       - name: Install frontend dependencies
         run: npm ci

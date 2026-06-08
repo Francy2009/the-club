@@ -7,6 +7,12 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-06-08
+
+### Corretto
+- Build macOS Apple Silicon impostando il deployment target minimo a macOS 11.0.
+- Runner GitHub Actions macOS separati per Apple Silicon e Intel.
+
 ## [1.0.1] - 2026-06-08
 
 ### Corretto
@@ -36,6 +42,7 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 - Autenticazione JWT + bcrypt
 - TypeScript strict mode
 
-[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.2...v1.0.3
 [1.0.1]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Francy2009/Gestore-pub/releases/tag/v1.0.0
