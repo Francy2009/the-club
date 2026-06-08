@@ -7,6 +7,12 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-06-08
+
+### Corretto
+- Schema `tauri.conf.json` per Tauri v2: `infoPlist` ora usa un file `.plist`.
+- Configurazione NSIS semplificata rimuovendo stringhe non supportate.
+
 ## [1.0.3] - 2026-06-08
 
 ### Corretto
@@ -42,7 +48,8 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 - Autenticazione JWT + bcrypt
 - TypeScript strict mode
 
-[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.2...v1.0.3
 [1.0.1]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Francy2009/Gestore-pub/releases/tag/v1.0.0
