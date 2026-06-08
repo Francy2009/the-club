@@ -1,42 +1,106 @@
-Welcome to your new TanStack Start app! 
+# Gestore Pub
 
-# Getting Started
+Applicazione desktop per la gestione di club privati - membri, presenze, QR code e report.
 
-To run this application:
+## 🚀 Avvio Rapido
+
+### Sviluppo (Web + Desktop)
 
 ```bash
+# Installa dipendenze
 npm install
+
+# Avvia server di sviluppo (web su porta 3000)
 npm run dev
+
+# In un altro terminale, avvia l'app Tauri
+cd src-tauri && cargo tauri dev
 ```
 
-# Building For Production
+### Solo Web
+```bash
+npm run dev
+# Apri http://localhost:3000
+```
 
-To build this application for production:
+## 📦 Build Produzione
+
+### App Desktop (Tauri) - Multi-piattaforma
+
+I build automatici avvengono via **GitHub Actions** ad ogni tag `v*`:
 
 ```bash
-npm run build
+# Crea una release
+git tag v1.0.0
+git push --tags
 ```
 
-## Testing
+→ Dopo ~2-3 minuti troverai i file scaricabili su:
+**https://github.com/FrancescoDellOrto/Gestore-pub/releases**
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+| Piattaforma | File generati |
+|-------------|---------------|
+| Windows | `.msi`, `.exe` |
+| macOS (Apple Silicon) | `.dmg` (aarch64) |
+| macOS (Intel) | `.dmg` (x64) |
+| Linux | `.AppImage`, `.deb` |
+
+### Build Locale (opzionale)
+
+```bash
+# Build frontend
+npm run build
+
+# Build Tauri per la piattaforma corrente
+cd src-tauri && cargo tauri build
+```
+
+I file saranno in `src-tauri/target/release/bundle/`.
+
+## 🔄 Aggiornamenti Automatici
+
+L'app controlla automaticamente le nuove versioni all'avvio (Tauri Updater).
+Se c'è una nuova release su GitHub, l'utente vedrà un dialog per scaricare e installare.
+
+## 🧪 Testing
 
 ```bash
 npm run test
 ```
 
-## Styling
+## 🎨 Styling
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+Tailwind CSS 4.x - vedi `src/styles.css` e `vite.config.ts`.
 
-### Removing Tailwind CSS
+## 🗂 Struttura Progetto
 
-If you prefer not to use Tailwind CSS:
+```
+├── src/                    # Frontend React (TanStack Start)
+│   ├── routes/             # File-based routing
+│   ├── components/         # Componenti UI
+│   └── lib/                # Utilities (auth, db, api)
+├── src-tauri/              # Backend Rust (Tauri)
+│   ├── src/                # Comandi Tauri, DB, Auth
+│   ├── Cargo.toml          # Dipendenze Rust
+│   └── tauri.conf.json     # Config Tauri (bundle, updater, icone)
+├── prisma/                 # Schema DB + migrazioni + seed
+├── .github/workflows/      # CI/CD (release.yml)
+├── CHANGELOG.md            # Storico versioni
+└── LICENSE                 # MIT License
+```
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `npm install @tailwindcss/vite tailwindcss -D`
+## 🛠 Tech Stack
+
+- **Frontend**: React 19, TanStack Start, TanStack Router, Tailwind CSS 4
+- **Backend**: Rust, Tauri 2, SQLx, SQLite
+- **Database**: Prisma ORM (schema) + SQLx (runtime)
+- **Auth**: JWT + bcrypt + Argon2
+- **Build**: Vite, cargo-tauri
+- **CI/CD**: GitHub Actions (tauri-action)
+
+## 📄 Licenza
+
+MIT - vedi [LICENSE](LICENSE)
 
 
 
