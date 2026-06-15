@@ -2,6 +2,7 @@ import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { getAttendanceLogsFn, deleteAttendanceFn } from '../../lib/api'
 import { jsPDF } from 'jspdf'
+import { savePdfDocument } from '../../lib/export-preferences'
 import { ArrowLeft, Search, Trash2, CheckCircle, AlertCircle, CalendarDays, Clock, Users, Download } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/presenze')({
@@ -65,7 +66,7 @@ function AttendanceHistory() {
     loadLogs()
   }
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     const reportDate = new Date(`${selectedDate}T12:00:00`)
     const formattedDate = reportDate.toLocaleDateString('it-IT', {
       weekday: 'long',
@@ -162,7 +163,7 @@ function AttendanceHistory() {
       doc.text('Nessuna presenza registrata per il giorno selezionato.', margin, y + 8)
     }
 
-    doc.save(`presenze-${selectedDate}.pdf`)
+    await savePdfDocument(doc, `presenze-${selectedDate}.pdf`)
   }
 
   const handleDelete = async (attendanceId: string, memberName: string) => {

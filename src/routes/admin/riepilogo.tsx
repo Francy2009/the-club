@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useLoaderData } from '@tanstack/react-router'
 import { jsPDF } from 'jspdf'
 import { getMonthlySummaryFn } from '../../lib/api'
+import { savePdfDocument } from '../../lib/export-preferences'
 import { AlertTriangle, ArrowLeft, CalendarDays, ClipboardList, Download, FileText, Users } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/riepilogo')({
@@ -69,7 +70,7 @@ function AdminSummary() {
     doc.text(`Generato il ${formatDate(summary.generated_at)}`, margin + 24, 68)
   }
 
-  const downloadExpiryPdf = () => {
+  const downloadExpiryPdf = async () => {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
     const pageWidth = doc.internal.pageSize.getWidth()
     const pageHeight = doc.internal.pageSize.getHeight()
@@ -127,10 +128,10 @@ function AdminSummary() {
       doc.text('Nessuna tessera in scadenza questo mese.', margin, y + 8)
     }
 
-    doc.save(`tessere-in-scadenza-${summary.expiry.month_key}.pdf`)
+    await savePdfDocument(doc, `tessere-in-scadenza-${summary.expiry.month_key}.pdf`)
   }
 
-  const downloadAttendancePdf = () => {
+  const downloadAttendancePdf = async () => {
     if (!summary.attendance.is_closed) return
 
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
@@ -200,7 +201,7 @@ function AdminSummary() {
       doc.text('Nessuna presenza registrata nel mese precedente.', margin, y + 8)
     }
 
-    doc.save(`riepilogo-eventi-${summary.attendance.month_key}.pdf`)
+    await savePdfDocument(doc, `riepilogo-eventi-${summary.attendance.month_key}.pdf`)
   }
 
   return (

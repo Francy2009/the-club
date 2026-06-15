@@ -15,6 +15,7 @@ model Member {
   qr_token         String?   @unique
   username         String    @unique
   password         String // Hashed password
+  recovery_phrase_hash String?
   joined_at        DateTime  @default(now())
   expiry_date      DateTime?
   password_changed Boolean   @default(false)
@@ -62,4 +63,19 @@ model Session {
 
   @@index([memberId])
   @@index([expiresAt])
+}
+
+model RateLimitAttempt {
+  id           String   @id @default(uuid())
+  identifier   String   // username (lowercase) or IP
+  type         String   // "login" or "recovery"
+  failedCount  Int      @default(0)
+  windowStart  DateTime @default(now())
+  lockedUntil  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([identifier, type])
+  @@index([identifier])
+  @@index([lockedUntil])
 }

@@ -1,257 +1,297 @@
 # Gestore Pub
 
-Applicazione desktop per la gestione di club privati - membri, presenze, QR code e report.
+Applicazione open source per club privati: anagrafica soci, tessere QR, rinnovi, presenze, backup e report PDF.
 
-## 🚀 Avvio Rapido
+## 🎯 Caratteristiche Principali
 
-### Sviluppo (Web + Desktop)
+- **Gestione Soci**: Anagrafica completa con numero tessera, QR code, date iscrizione/scadenza
+- **Presenze**: Check-in tramite QR code con storico giornaliero
+- **Autenticazione Sicura**: Hash PBKDF2-SHA512 (310.000 iterazioni), sessioni HttpOnly/Secure/SameSite
+- **Recupero Password**: Frase di recupero (hash separato) per reset senza email
+- **Backup Sicuro**: JSON standard senza hash password/frase recupero + CSV per consultazione
+- **Export Personalizzabile**: Scegli cartella di destinazione (File System Access API) o Download default
+- **PWA Ready**: Installabile, offline-capable, manifest configurato
+- **Desktop Tauri**: Build nativi Windows/macOS/Linux
+- **Open Source**: Codice verificabile, zero telemetria, zero dipendenze esterne per dati sensibili
+
+## 🔐 Primo Avvio - Configurazione Amministratore
+
+Al **primo avvio assoluto** (database vuoto), l'applicazione:
+
+1. Crea automaticamente un utente `admin` con password casuale sicura
+2. Reindirizza alla pagina **`/setup`** per la configurazione obbligatoria
+3. Richiede tre campi:
+   - **Username** (min 3 caratteri, univoco)
+   - **Password robusta** (min 8 caratteri, 1 maiuscola, 1 numero, 1 simbolo)
+   - **Frase di recupero** (min 3 parole, 16 caratteri, confermata)
+
+### Sicurezza della Configurazione Iniziale
+
+- **Nessuna password hardcoded**: L'admin iniziale ha password casuale generata crypto-safe
+- **Hash separati**: Password e frase di recupero usano salt diversi
+- **Sessioni revocate**: Dopo il setup, tutte le sessioni precedenti vengono invalidate
+- **Open source friendly**: Il codice sorgente non contiene segreti, solo logica di hash
+
+### Requisiti Password
+```
+✓ Almeno 8 caratteri
+✓ Almeno 1 maiuscola (A-Z)
+✓ Almeno 1 numero (0-9)
+✓ Almeno 1 simbolo (!@#$%^&*()_+-=[]{};':"\|,.<>/?)
+```
+
+### Requisiti Frase di Recupero
+```
+✓ Almeno 3 parole separate da spazi
+✓ Almeno 16 caratteri totali
+✓ Deve essere confermata identica
+✓ Viene normalizzata (spazi multipli → singolo, trim)
+```
+
+> ⚠️ **Importante**: La frase di recupero è l'**unico modo** per recuperare l'accesso se dimentichi la password. Conservala in un password manager o luogo sicuro. Non è recuperabile dal codice.
+
+## 🚀 Avvio In Sviluppo
 
 ```bash
 # Installa dipendenze
 npm install
 
-# Avvia server di sviluppo (web su porta 3000)
+# Avvia server sviluppo (Vite + TanStack Start)
 npm run dev
+```
 
-# In un altro terminale, avvia l'app Tauri
+Apri `http://localhost:3000`.
+
+### Comandi Utili
+
+```bash
+# Setup database
+npx prisma migrate deploy # Applica le migrazioni Prisma
+npm run db:seed           # Crea l'admin iniziale di sviluppo
+
+# Build produzione
+npm run build             # Build client + server
+npm run preview           # Anteprima build produzione
+
+# Tauri Desktop
+npm run build:tauri       # Build frontend per Tauri
 cd src-tauri && cargo tauri dev
-```
-
-### Solo Web
-```bash
-npm run dev
-# Apri http://localhost:3000
-```
-
-## 📦 Build Produzione
-
-### App Desktop (Tauri) - Multi-piattaforma
-
-I build automatici avvengono via **GitHub Actions** ad ogni tag `v*`:
-
-```bash
-# Crea una release
-git tag v1.0.0
-git push --tags
-```
-
-→ Dopo ~2-3 minuti troverai i file scaricabili su:
-**https://github.com/FrancescoDellOrto/Gestore-pub/releases**
-
-| Piattaforma | File generati |
-|-------------|---------------|
-| Windows | `.msi`, `.exe` |
-| macOS (Apple Silicon) | `.dmg` (aarch64) |
-| macOS (Intel) | `.dmg` (x64) |
-| Linux | `.AppImage`, `.deb` |
-
-### Build Locale (opzionale)
-
-```bash
-# Build frontend
-npm run build
-
-# Build Tauri per la piattaforma corrente
 cd src-tauri && cargo tauri build
 ```
 
-I file saranno in `src-tauri/target/release/bundle/`.
+## 🖥️ Build Desktop Tauri
 
-## 🔄 Aggiornamenti Automatici
-
-L'app controlla automaticamente le nuove versioni all'avvio (Tauri Updater).
-Se c'è una nuova release su GitHub, l'utente vedrà un dialog per scaricare e installare.
-
-## 🧪 Testing
+L'app include configurazione Tauri per build native:
 
 ```bash
-npm run test
+# Sviluppo desktop (hot reload)
+npm run build:tauri
+cd src-tauri
+cargo tauri dev
+
+# Build installabili
+npm run build:tauri
+cd src-tauri
+cargo tauri build
 ```
 
-## 🎨 Styling
+**Output**: `src-tauri/target/release/bundle/`
+- Windows: `.msi`, `.exe`
+- macOS: `.dmg`, `.app`
+- Linux: `.AppImage`, `.deb`, `.rpm`
 
-Tailwind CSS 4.x - vedi `src/styles.css` e `vite.config.ts`.
+### Permessi Tauri Configurati
+- `fs:allow-read`, `fs:allow-write` (export/backup)
+- `dialog:allow-open`, `dialog:allow-save` (scelta cartella)
+- `shell:allow-execute` (solo comandi interni sicuri)
 
-## 🗂 Struttura Progetto
+## 📁 Export, PDF, Backup e Cartella Personalizzata
 
+### Default: Cartella Download
+Per impostazione predefinita, tutti i file generati vanno nella cartella **Download** del browser/sistema.
+
+### Personalizzazione: Scegli Cartella (Impostazioni Admin)
+Nelle **Impostazioni Admin** (`/admin/impostazioni`):
+1. Clicca **"Scegli cartella export"**
+2. Seleziona una cartella (richiede **File System Access API** - Chrome/Edge 86+, Firefox 111+, Safari 15.2+)
+3. L'app richiede permesso di scrittura persistente
+4. Tutti gli export futuri andranno lì
+
+> 📝 **Nota**: Se l'API non è supportata, l'app torna automaticamente al download standard.
+
+### Tipi di Export
+| Tipo | Contenuto | Sensibilità |
+|------|-----------|-------------|
+| **Backup JSON standard** | Soci, ruoli, presenze e token QR; non include hash password/frase recupero | 🟡 Media - Dati personali |
+| **CSV Soci** | Anagrafica (no hash, no QR token) | 🟡 Media - Dati personali |
+| **CSV Presenze** | Storico check-in (no hash) | 🟡 Media - Dati personali |
+| **PDF Tessere** | QR code + dati socio | 🟡 Media |
+| **PDF Report** | Report presenze, scadenze | 🟡 Media |
+
+### Sicurezza Backup
+- Il backup JSON standard **non contiene hash password** né **hash frase recupero**
+- Contiene comunque **token QR** e dati personali dei soci
+- **Conserva backup su supporti protetti** (VeraCrypt, BitLocker, FileVault, LUKS)
+- Non condividere backup in chat, email non cifrate, cloud non protetto
+
+## 🔑 Recupero Accesso Amministratore
+
+### Metodo 1: Frase di Recupero (Consigliato)
+1. Vai a `/login`
+2. Clicca **"Recupera password"**
+3. Inserisci: username + frase di recupero + nuova password
+4. Accesso ripristinato, sessioni precedenti revocate
+
+### Metodo 2: Reset da Terminale (Emergenza)
+Sulla macchina che ospita il database Prisma:
+
+```bash
+# Password generata casualmente
+npm run db:reset-admin
+
+# Password personalizzata
+ADMIN_RESET_PASSWORD="TuaPassSicura1!" npm run db:reset-admin
 ```
-├── src/                    # Frontend React (TanStack Start)
-│   ├── routes/             # File-based routing
-│   ├── components/         # Componenti UI
-│   └── lib/                # Utilities (auth, db, api)
-├── src-tauri/              # Backend Rust (Tauri)
-│   ├── src/                # Comandi Tauri, DB, Auth
-│   ├── Cargo.toml          # Dipendenze Rust
-│   └── tauri.conf.json     # Config Tauri (bundle, updater, icone)
-├── prisma/                 # Schema DB + migrazioni + seed
-├── .github/workflows/      # CI/CD (release.yml)
-├── CHANGELOG.md            # Storico versioni
-└── LICENSE                 # MIT License
+
+Dopo il reset: l'app forza **nuovamente** la configurazione di password e frase di recupero (`/setup`).
+
+## 🧪 Test e Qualità
+
+```bash
+# Test automatici
+npm test
+
+# Build completa
+npm run build
+
+# Build Tauri
+npm run build:tauri
 ```
 
-## 🛠 Tech Stack
+> Nota: `npx tsc --noEmit` oggi include anche la cartella di esempio `start-basic`, che non e allineata al route tree principale.
 
-- **Frontend**: React 19, TanStack Start, TanStack Router, Tailwind CSS 4
-- **Backend**: Rust, Tauri 2, SQLx, SQLite
-- **Database**: Prisma ORM (schema) + SQLx (runtime)
-- **Auth**: JWT + bcrypt + Argon2
-- **Build**: Vite, cargo-tauri
-- **CI/CD**: GitHub Actions (tauri-action)
+## 📂 Struttura Progetto
+
+```text
+gestore-pub/
+├── src/
+│   ├── components/       # Componenti UI riutilizzabili (Header, Footer, ThemeToggle)
+│   ├── lib/              # Core logic: auth, db, api, export-preferences
+│   │   ├── auth.server.ts      # Hash, sessioni, cookie sicuri
+│   │   ├── db.ts               # Client Prisma singleton
+│   │   ├── api.functions.ts    # Server functions (TanStack Start)
+│   │   ├── export-preferences.ts # File System Access API + IndexedDB
+│   │   └── api.ts              # Client-side API wrappers
+│   ├── routes/           # Pagine (file-based routing TanStack Router)
+│   │   ├── __root.tsx          # Layout radice, auth context, theme
+│   │   ├── setup.tsx           # Configurazione iniziale admin
+│   │   ├── login.tsx           # Login + recupero password
+│   │   ├── index.tsx           # Dashboard utente
+│   │   ├── profile.tsx         # Profilo socio
+│   │   ├── admin/              # Pannello amministrazione
+│   │   │   ├── index.tsx       # Gestione soci
+│   │   │   ├── presenze.tsx    # Check-in QR
+│   │   │   ├── scanner.tsx     # Scanner QR camera
+│   │   │   ├── riepilogo.tsx   # Report presenze
+│   │   │   ├── create.tsx      # Crea socio + PDF tessera
+│   │   │   ├── attendance.tsx  # Storico presenze
+│   │   │   └── impostazioni.tsx # Config admin, export, backup
+│   ├── router.tsx        # Router TanStack + route tree
+│   ├── routeTree.gen.ts  # Generato automaticamente
+│   └── styles.css        # Tailwind + custom CSS
+├── prisma/
+│   ├── schema.prisma     # Modelli DB (Member, Attendance, Session, UserRole)
+│   ├── seed.ts           # Seed sviluppo
+│   ├── reset-admin-password.ts # Script reset admin
+│   └── migrations/       # Migrazioni SQL versionate
+├── src-tauri/            # Configurazione Tauri (Rust)
+│   ├── Cargo.toml
+│   ├── tauri.conf.json
+│   ├── build.rs
+│   └── src/main.rs
+├── public/               # Asset statici (manifest, sw.js, icons)
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── README.md
+├── PRIVACY.md
+├── CHANGELOG.md
+└── LICENSE
+```
+
+## 🛡️ Architettura Sicurezza
+
+### Autenticazione
+- **PBKDF2-SHA512**, 310.000 iterazioni, salt 16 byte, key 64 byte
+- **Sessioni**: Token 32 byte base64url, hash SHA-256 in DB, cookie HttpOnly/Secure/SameSite=Strict
+- **Rate limiting**: Login (8 tentativi/15min → lock 15min), Recovery (5 tentativi/15min → lock 30min)
+- **Timing-safe comparison**: `crypto.timingSafeEqual` per hash
+
+### Frase di Recupero
+- Hash **separato** dalla password (stesso algoritmo, salt diverso)
+- Non derivata dalla password, indipendente
+- Verificata in constant-time
+
+### Protezione Dati
+- **Zero telemetria**: Nessun analytics, tracking, beacon
+- **Zero CDN esterni**: Font, CSS, JS serviti localmente
+- **CSP Ready**: Headers configurabili per produzione
+- **PWA Offline**: Service worker per asset statici
+
+## 📋 Checklist Deploy Produzione
+
+- [ ] `NODE_ENV=production` impostato
+- [ ] Database SQLite su volume persistente (non efemero)
+- [ ] HTTPS obbligatorio (cookie `secure: true`)
+- [ ] Reverse proxy (Nginx/Caddy) con headers sicurezza
+- [ ] Backup automatici database + file export
+- [ ] Monitoraggio spazio disco (backup JSON crescono)
+- [ ] CSP headers: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'`
+- [ ] HSTS, X-Frame-Options, Referrer-Policy configurati
+
+## 🤝 Contribuire
+
+1. Fork repository
+2. Crea branch feature (`git checkout -b feature/nome`)
+3. Commit cambiamenti (`git commit -m 'feat: descrizione'`)
+4. Push branch (`git push origin feature/nome`)
+5. Apri Pull Request
+
+### Convenzioni Commit
+- `feat:` nuova funzionalità
+- `fix:` correzione bug
+- `docs:` documentazione
+- `refactor:` ristrutturazione codice
+- `security:` miglioramenti sicurezza
+- `chore:` manutenzione
 
 ## 📄 Licenza
 
-MIT - vedi [LICENSE](LICENSE)
+MIT License - Vedi `LICENSE` per dettagli.
 
+## 📞 Supporto
 
+- **Issues**: GitHub Issues per bug/feature request
+- **Security**: Per vulnerabilità, apri issue privato o email maintainer
+- **Documentazione**: Questo README + `PRIVACY.md` + codice sorgente commentato
 
-## Routing
+---
 
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
+**Gestore Pub** - Sviluppato per club privati che vogliono controllo totale sui propri dati.
 
-### Adding A Route
+## Note Di Sicurezza
 
-To add a new route to your application just add a new file in the `./src/routes` directory.
+- L'app e open source: non fare affidamento su segreti nel codice.
+- Password e frase di recupero devono essere forti e uniche.
+- Chi accede al dispositivo admin o ai backup puo tentare attacchi offline sugli hash.
+- I token QR identificano le tessere: non pubblicare backup o screenshot dei QR.
+- Aggiorna dipendenze e sistema operativo con regolarita.
+- Prima di pubblicare una release, esegui build e test su una copia del database.
 
-TanStack will automatically generate the content of the route file for you.
+## Privacy
 
-Now that you have two routes you can use a `Link` component to navigate between them.
+Vedi [PRIVACY.md](PRIVACY.md).
 
-### Adding Links
+## Licenza
 
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+MIT, vedi [LICENSE](LICENSE).

@@ -1,8 +1,7 @@
 import { createFileRoute, useNavigate, useRouter, useRouteContext } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { setupValidator } from '../lib/api'
-import { Lock, ShieldCheck, ShieldAlert, Check, X, User } from 'lucide-react'
-import { z } from 'zod'
+import { KeyRound, Lock, ShieldCheck, ShieldAlert, Check, X, User } from 'lucide-react'
 
 export const Route = createFileRoute('/setup')({
   component: Setup,
@@ -14,18 +13,13 @@ export const Route = createFileRoute('/setup')({
   },
 })
 
-// Client-side Zod validation
-const passwordSchema = z.string()
-  .min(8, 'Almeno 8 caratteri')
-  .regex(/[A-Z]/, 'Almeno una lettera maiuscola')
-  .regex(/\d/, 'Almeno un numero')
-  .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Almeno un simbolo speciale');
-
 function Setup() {
   const { user } = useRouteContext({ from: '__root__' })
   const [username, setUsername] = useState(user?.username || '')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [recoveryPhrase, setRecoveryPhrase] = useState('')
+  const [confirmRecoveryPhrase, setConfirmRecoveryPhrase] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -37,15 +31,29 @@ function Setup() {
   const hasNum = /\d/.test(password)
   const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
   const matchesConfirm = password === confirmPassword && password.length > 0
+  const normalizedRecoveryPhrase = recoveryPhrase.trim().replace(/\s+/g, ' ')
+  const normalizedConfirmRecoveryPhrase = confirmRecoveryPhrase.trim().replace(/\s+/g, ' ')
+  const recoveryHasLength = normalizedRecoveryPhrase.length >= 16
+  const recoveryHasWords = normalizedRecoveryPhrase.split(' ').filter(Boolean).length >= 3
+  const recoveryMatches = normalizedRecoveryPhrase === normalizedConfirmRecoveryPhrase && normalizedRecoveryPhrase.length > 0
 
-  const canSubmit = hasMinLen && hasUpper && hasNum && hasSymbol && matchesConfirm && username.trim().length >= 3
+  const canSubmit =
+    hasMinLen &&
+    hasUpper &&
+    hasNum &&
+    hasSymbol &&
+    matchesConfirm &&
+    recoveryHasLength &&
+    recoveryHasWords &&
+    recoveryMatches &&
+    username.trim().length >= 3
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
     if (!canSubmit) {
-      setError('La password non rispetta i requisiti di sicurezza o le password non coincidono.')
+      setError('Password o frase di recupero non rispettano i requisiti di sicurezza.')
       return
     }
 
@@ -56,6 +64,7 @@ function Setup() {
         data: {
           username: username.trim(),
           password: password,
+          recovery_phrase: normalizedRecoveryPhrase,
         },
       })
 
@@ -91,7 +100,7 @@ function Setup() {
             Configura il tuo Account
           </h1>
           <p className="text-sm text-[var(--sea-ink-soft)] mt-1 text-center">
-            Per motivi di sicurezza, devi impostare un nuovo username e una password robusta per il primo accesso.
+            Scegli username, password e una frase di recupero. La frase viene salvata solo come hash e serve se dimentichi la password.
           </p>
         </div>
 
@@ -124,6 +133,56 @@ function Setup() {
                 disabled={loading}
                 className="block w-full rounded-xl border border-[var(--line)] bg-white/40 py-3 pl-10 pr-4 text-sm text-[var(--sea-ink)] focus:border-amber-500/50 focus:bg-white/80 focus:outline-none focus:ring-2 focus:ring-amber-500/10"
               />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+            <div>
+              <label
+                htmlFor="recoveryPhrase"
+                className="block text-xs font-semibold uppercase tracking-wider text-[var(--sea-ink-soft)] mb-2"
+              >
+                Frase di recupero
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--sea-ink-soft)]">
+                  <KeyRound className="h-4.5 w-4.5" />
+                </span>
+                <input
+                  id="recoveryPhrase"
+                  type="password"
+                  value={recoveryPhrase}
+                  onChange={(e) => setRecoveryPhrase(e.target.value)}
+                  placeholder="almeno tre parole segrete"
+                  required
+                  disabled={loading}
+                  className="block w-full rounded-xl border border-[var(--line)] bg-white/40 py-3 pl-10 pr-4 text-sm text-[var(--sea-ink)] focus:border-amber-500/50 focus:bg-white/80 focus:outline-none focus:ring-2 focus:ring-amber-500/10"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="confirmRecoveryPhrase"
+                className="block text-xs font-semibold uppercase tracking-wider text-[var(--sea-ink-soft)] mb-2"
+              >
+                Conferma frase
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--sea-ink-soft)]">
+                  <KeyRound className="h-4.5 w-4.5" />
+                </span>
+                <input
+                  id="confirmRecoveryPhrase"
+                  type="password"
+                  value={confirmRecoveryPhrase}
+                  onChange={(e) => setConfirmRecoveryPhrase(e.target.value)}
+                  placeholder="ripeti la frase"
+                  required
+                  disabled={loading}
+                  className="block w-full rounded-xl border border-[var(--line)] bg-white/40 py-3 pl-10 pr-4 text-sm text-[var(--sea-ink)] focus:border-amber-500/50 focus:bg-white/80 focus:outline-none focus:ring-2 focus:ring-amber-500/10"
+                />
+              </div>
             </div>
           </div>
 
@@ -223,6 +282,22 @@ function Setup() {
                     <span className="text-red-500 inline-flex items-center"><X className="w-4 h-4" /></span>
                   )}
                   Le password coincidono
+                </li>
+                <li className="flex items-center gap-2">
+                  {recoveryHasLength && recoveryHasWords ? (
+                    <span className="text-emerald-500 inline-flex items-center"><Check className="w-4 h-4" /></span>
+                  ) : (
+                    <span className="text-red-500 inline-flex items-center"><X className="w-4 h-4" /></span>
+                  )}
+                  Frase: 3 parole e 16 caratteri
+                </li>
+                <li className="flex items-center gap-2">
+                  {recoveryMatches ? (
+                    <span className="text-emerald-500 inline-flex items-center"><Check className="w-4 h-4" /></span>
+                  ) : (
+                    <span className="text-red-500 inline-flex items-center"><X className="w-4 h-4" /></span>
+                  )}
+                  Le frasi coincidono
                 </li>
               </ul>
             </div>

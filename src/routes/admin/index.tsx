@@ -8,6 +8,7 @@ import {
   getTodayAttendanceFn, 
   deleteMemberFn
 } from '../../lib/api'
+import { savePdfDocument } from '../../lib/export-preferences'
 import { 
   UserPlus, 
   Search, 
@@ -85,7 +86,7 @@ function AdminDashboard() {
   }) => {
     setQrDownloadMember(member)
 
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
       try {
         const canvas = document.getElementById('admin-member-qr-canvas') as HTMLCanvasElement | null
         if (!canvas) {
@@ -141,7 +142,7 @@ function AdminDashboard() {
         doc.text('QR personale statico per check-in ingresso', 8, 45)
         doc.text('Mostrare questa tessera al personale del club', 48, 45)
 
-        doc.save(`tessera-${member.first_name.toLowerCase()}-${member.last_name.toLowerCase()}.pdf`)
+        await savePdfDocument(doc, `tessera-${member.first_name.toLowerCase()}-${member.last_name.toLowerCase()}.pdf`)
       } catch (err) {
         console.error(err)
         alert('Errore durante la generazione della tessera PDF.')

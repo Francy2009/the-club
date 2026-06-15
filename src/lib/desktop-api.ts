@@ -8,6 +8,7 @@ type DesktopMember = {
   qr_token: string | null
   username: string
   password_hash: string
+  recovery_phrase_hash: string | null
   joined_at: string
   expiry_date: string | null
   password_changed: boolean
@@ -34,7 +35,6 @@ type DesktopDb = {
 }
 
 const DB_KEY = 'gestore-pub:desktop-db'
-const INITIAL_ADMIN_PASSWORD = 'Admin123!'
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/
 
 type FnArgs = { data?: Record<string, unknown> } | undefined
@@ -86,11 +86,39 @@ function randomToken() {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
+function randomHex(bytesLength = 16) {
+  const bytes = new Uint8Array(bytesLength)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
 function toHex(buffer: ArrayBuffer) {
   return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 async function digestPassword(password: string, salt = randomToken()) {
+  if (crypto.subtle) {
+    const pbkdf2Salt = /^[a-f0-9]{32}$/i.test(salt) ? salt : randomHex()
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(password),
+      'PBKDF2',
+      false,
+      ['deriveBits'],
+    )
+    const bits = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: new TextEncoder().encode(pbkdf2Salt),
+        iterations: 310000,
+        hash: 'SHA-512',
+      },
+      key,
+      512,
+    )
+    return `pbkdf2_sha512$310000$${pbkdf2Salt}$${toHex(bits)}`
+  }
+
   if (!crypto.subtle) {
     return `local$${salt}$${btoa(`${salt}:${password}`)}`
   }
@@ -138,6 +166,15 @@ async function verifyPassword(password: string, storedHash: string) {
 
   const [kind, salt, hash] = storedHash.split('$')
   if (!kind || !salt || !hash) return false
+  if (kind === 'sha256') {
+    if (!crypto.subtle) return false
+    const encoded = new TextEncoder().encode(`${salt}:${password}`)
+    const currentHash = await crypto.subtle.digest('SHA-256', encoded)
+    return toHex(currentHash) === hash.toLowerCase()
+  }
+  if (kind === 'local') {
+    return btoa(`${salt}:${password}`) === hash
+  }
   return await digestPassword(password, salt) === storedHash
 }
 
@@ -148,6 +185,10 @@ function parseDb(raw: string | null): DesktopDb | null {
     if (parsed.version !== 1 || !Array.isArray(parsed.members) || !Array.isArray(parsed.attendances)) {
       return null
     }
+    parsed.members = parsed.members.map((member) => ({
+      ...member,
+      recovery_phrase_hash: member.recovery_phrase_hash ?? null,
+    }))
     return parsed
   } catch {
     return null
@@ -156,18 +197,20 @@ function parseDb(raw: string | null): DesktopDb | null {
 
 async function createInitialDb(): Promise<DesktopDb> {
   const now = new Date().toISOString()
+  const adminId = randomId()
   return {
     version: 1,
-    current_user_id: null,
+    current_user_id: adminId,
     members: [
       {
-        id: randomId(),
+        id: adminId,
         first_name: 'Admin',
         last_name: 'Club',
         member_number: null,
         qr_token: null,
         username: 'admin',
-        password_hash: await digestPassword(INITIAL_ADMIN_PASSWORD),
+        password_hash: await digestPassword(randomToken()),
+        recovery_phrase_hash: null,
         joined_at: now,
         expiry_date: null,
         password_changed: false,
@@ -184,7 +227,22 @@ async function loadDb() {
   if (!db || !db.members.some((member) => member.role === 'admin')) {
     db = await createInitialDb()
     saveDb(db)
+    return db
   }
+
+  const bootstrapAdmin = db.members.length === 1 && db.members[0].role === 'admin'
+    ? db.members[0]
+    : null
+
+  if (
+    bootstrapAdmin &&
+    !db.current_user_id &&
+    (bootstrapAdmin.must_setup || !bootstrapAdmin.password_changed || !bootstrapAdmin.recovery_phrase_hash)
+  ) {
+    db.current_user_id = bootstrapAdmin.id
+    saveDb(db)
+  }
+
   return db
 }
 
@@ -262,6 +320,18 @@ function assertStrongPassword(password: string, message: string) {
   if (!PASSWORD_REGEX.test(password)) throw new Error(message)
 }
 
+function normalizeRecoveryPhrase(value: string) {
+  return value.trim().replace(/\s+/g, ' ')
+}
+
+function assertStrongRecoveryPhrase(phrase: string) {
+  const normalized = normalizeRecoveryPhrase(phrase)
+  const wordCount = normalized.split(' ').filter(Boolean).length
+  if (normalized.length < 16 || wordCount < 3) {
+    throw new Error('La frase di recupero deve contenere almeno 3 parole e 16 caratteri.')
+  }
+}
+
 function csvEscape(value: unknown) {
   if (value === null || value === undefined) return ''
   let text = String(value)
@@ -319,8 +389,10 @@ export async function setupValidator(args?: FnArgs) {
 
   const username = requiredString(data, 'username', 80).toLowerCase()
   const password = requiredString(data, 'password', 256)
+  const recoveryPhrase = requiredString(data, 'recovery_phrase', 500)
   if (username.length < 3) throw new Error('Lo username deve contenere almeno 3 caratteri.')
   assertStrongPassword(password, 'La password deve contenere almeno 8 caratteri, una maiuscola, un numero e un simbolo.')
+  assertStrongRecoveryPhrase(recoveryPhrase)
 
   if (db.members.some((member) => member.id !== user.id && member.username.toLowerCase() === username)) {
     throw new Error('Questo username è già in uso.')
@@ -328,6 +400,7 @@ export async function setupValidator(args?: FnArgs) {
 
   user.username = username
   user.password_hash = await digestPassword(password)
+  user.recovery_phrase_hash = await digestPassword(normalizeRecoveryPhrase(recoveryPhrase))
   user.password_changed = true
   user.must_setup = false
   saveDb(db)
@@ -353,6 +426,51 @@ export async function changeAdminPasswordFn(args?: FnArgs) {
   admin.password_hash = await digestPassword(newPassword)
   admin.password_changed = true
   admin.must_setup = false
+  saveDb(db)
+  return { success: true }
+}
+
+export async function changeAdminRecoveryPhraseFn(args?: FnArgs) {
+  const data = getData(args)
+  assertRecord(data)
+  const db = await loadDb()
+  const admin = assertReadyAdmin(db)
+  const currentPassword = requiredString(data, 'current_password', 256)
+  const recoveryPhrase = requiredString(data, 'recovery_phrase', 500)
+
+  if (!(await verifyPassword(currentPassword, admin.password_hash))) {
+    throw new Error('La password attuale non e corretta')
+  }
+
+  assertStrongRecoveryPhrase(recoveryPhrase)
+  admin.recovery_phrase_hash = await digestPassword(normalizeRecoveryPhrase(recoveryPhrase))
+  saveDb(db)
+  return { success: true }
+}
+
+export async function recoverPasswordFn(args?: FnArgs) {
+  const data = getData(args)
+  assertRecord(data)
+  const db = await loadDb()
+  const username = requiredString(data, 'username', 80).toLowerCase()
+  const recoveryPhrase = requiredString(data, 'recovery_phrase', 500)
+  const newPassword = requiredString(data, 'new_password', 256)
+  const member = db.members.find((candidate) => candidate.username.toLowerCase() === username)
+
+  assertStrongPassword(newPassword, 'La nuova password deve contenere almeno 8 caratteri, una maiuscola, un numero e un simbolo.')
+
+  if (!member || !member.recovery_phrase_hash || !(await verifyPassword(normalizeRecoveryPhrase(recoveryPhrase), member.recovery_phrase_hash))) {
+    throw new Error('Username o frase di recupero non validi.')
+  }
+
+  if (await verifyPassword(newPassword, member.password_hash)) {
+    throw new Error('La nuova password deve essere diversa da quella attuale')
+  }
+
+  member.password_hash = await digestPassword(newPassword)
+  member.password_changed = true
+  member.must_setup = false
+  db.current_user_id = member.id
   saveDb(db)
   return { success: true }
 }
@@ -419,6 +537,7 @@ export async function createMemberFn(args?: FnArgs) {
     qr_token: randomToken(),
     username,
     password_hash: await digestPassword(temporaryPassword),
+    recovery_phrase_hash: null,
     joined_at: joinedAt.toISOString(),
     expiry_date: expiryDate.toISOString(),
     password_changed: false,
@@ -661,7 +780,8 @@ export async function exportBackupFn() {
     member_number: member.member_number,
     qr_token: member.qr_token,
     username: member.username,
-    password: member.password_hash,
+      password: member.password_hash,
+      recovery_phrase_hash: member.recovery_phrase_hash,
     joined_at: member.joined_at,
     expiry_date: member.expiry_date,
     password_changed: member.password_changed,
@@ -687,7 +807,7 @@ export async function exportBackupFn() {
     backup,
     csv: {
       members: toCsv(
-        ['id', 'role', 'first_name', 'last_name', 'member_number', 'username', 'joined_at', 'expiry_date', 'password_changed', 'must_setup', 'qr_token'],
+        ['id', 'role', 'first_name', 'last_name', 'member_number', 'username', 'joined_at', 'expiry_date', 'password_changed', 'must_setup', 'qr_token', 'recovery_phrase_set'],
         members.map((member) => [
           member.id,
           member.role.role,
@@ -700,6 +820,7 @@ export async function exportBackupFn() {
           member.password_changed,
           member.must_setup,
           member.qr_token ?? '',
+          Boolean(member.recovery_phrase_hash),
         ]),
       ),
       attendances: toCsv(
@@ -752,6 +873,7 @@ export async function restoreBackupFn(args?: FnArgs) {
       qr_token: nullableString(member, 'qr_token', 120),
       username: requiredString(member, 'username', 80).toLowerCase(),
       password_hash: requiredString(member, 'password', 500),
+      recovery_phrase_hash: nullableString(member, 'recovery_phrase_hash', 500),
       joined_at: requiredString(member, 'joined_at', 80),
       expiry_date: nullableString(member, 'expiry_date', 80),
       password_changed: Boolean(member.password_changed),

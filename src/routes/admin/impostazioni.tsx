@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect, useRouter } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -8,6 +8,7 @@ import {
   Download,
   FileArchive,
   FileSpreadsheet,
+  FolderDown,
   KeyRound,
   LifeBuoy,
   LockKeyhole,
@@ -16,7 +17,13 @@ import {
   ShieldCheck,
   Upload,
 } from 'lucide-react'
-import { changeAdminPasswordFn, exportBackupFn, restoreBackupFn } from '../../lib/api'
+import { changeAdminPasswordFn, changeAdminRecoveryPhraseFn, exportBackupFn, restoreBackupFn } from '../../lib/api'
+import {
+  chooseExportDirectory,
+  getExportPreference,
+  resetExportDirectory,
+  saveTextFile,
+} from '../../lib/export-preferences'
 
 const MAX_BACKUP_FILE_BYTES = 20 * 1024 * 1024
 
@@ -33,28 +40,24 @@ function fileDateStamp(value = new Date().toISOString()) {
   return value.replace(/[:.]/g, '-').slice(0, 19)
 }
 
-function downloadTextFile(filename: string, content: string, type: string) {
-  const blob = new Blob([content], { type })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
-}
-
 function AdminSettings() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [recoveryCurrentPassword, setRecoveryCurrentPassword] = useState('')
+  const [newRecoveryPhrase, setNewRecoveryPhrase] = useState('')
+  const [confirmRecoveryPhrase, setConfirmRecoveryPhrase] = useState('')
   const [restoreConfirm, setRestoreConfirm] = useState('')
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [exportPreference, setExportPreference] = useState(() => getExportPreference())
+
+  useEffect(() => {
+    setExportPreference(getExportPreference())
+  }, [])
 
   const clearMessages = () => {
     setSuccessMsg(null)
@@ -96,12 +99,12 @@ function AdminSettings() {
     try {
       const archive = await exportBackupFn()
       const stamp = fileDateStamp(archive.exported_at)
-      downloadTextFile(
+      const saved = await saveTextFile(
         `gestore-pub-backup-${stamp}.json`,
         JSON.stringify(archive.backup, null, 2),
         'application/json;charset=utf-8'
       )
-      setSuccessMsg(`Backup completo scaricato: ${archive.counts.members} soci e ${archive.counts.attendances} presenze.`)
+      setSuccessMsg(`Backup completo salvato ${saved.method === 'folder' ? `in ${saved.directoryName}` : 'in Download'}: ${archive.counts.members} soci e ${archive.counts.attendances} presenze.`)
     } catch (error: any) {
       setErrorMsg(error?.message || 'Errore durante la creazione del backup.')
     } finally {
@@ -115,11 +118,71 @@ function AdminSettings() {
     try {
       const archive = await exportBackupFn()
       const stamp = fileDateStamp(archive.exported_at)
-      downloadTextFile(`gestore-pub-soci-${stamp}.csv`, archive.csv.members, 'text/csv;charset=utf-8')
-      downloadTextFile(`gestore-pub-presenze-${stamp}.csv`, archive.csv.attendances, 'text/csv;charset=utf-8')
-      setSuccessMsg('Esportazione CSV completata: sono stati scaricati anagrafica soci e storico presenze.')
+      const firstSaved = await saveTextFile(`gestore-pub-soci-${stamp}.csv`, archive.csv.members, 'text/csv;charset=utf-8')
+      await saveTextFile(`gestore-pub-presenze-${stamp}.csv`, archive.csv.attendances, 'text/csv;charset=utf-8')
+      setSuccessMsg(`Esportazione CSV completata ${firstSaved.method === 'folder' ? `in ${firstSaved.directoryName}` : 'in Download'}.`)
     } catch (error: any) {
       setErrorMsg(error?.message || 'Errore durante la creazione dei CSV.')
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  const handleRecoveryPhraseSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    clearMessages()
+
+    const normalizedPhrase = newRecoveryPhrase.trim().replace(/\s+/g, ' ')
+    const normalizedConfirm = confirmRecoveryPhrase.trim().replace(/\s+/g, ' ')
+
+    if (normalizedPhrase !== normalizedConfirm) {
+      setErrorMsg('Le frasi di recupero non coincidono.')
+      return
+    }
+
+    setBusyAction('recovery')
+    try {
+      await changeAdminRecoveryPhraseFn({
+        data: {
+          current_password: recoveryCurrentPassword,
+          recovery_phrase: normalizedPhrase,
+        },
+      })
+      setRecoveryCurrentPassword('')
+      setNewRecoveryPhrase('')
+      setConfirmRecoveryPhrase('')
+      setSuccessMsg('Frase di recupero aggiornata. Ricordala o conservala in un password manager.')
+    } catch (error: any) {
+      setErrorMsg(error?.message || 'Errore durante il cambio frase di recupero.')
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  const handleChooseExportDirectory = async () => {
+    clearMessages()
+    setBusyAction('export-directory')
+    try {
+      const preference = await chooseExportDirectory()
+      setExportPreference(preference)
+      setSuccessMsg(preference.mode === 'folder'
+        ? `Gli export verranno salvati in ${preference.directoryName}.`
+        : 'Questo ambiente non permette la scelta di una cartella: gli export useranno Download.')
+    } catch (error: any) {
+      setErrorMsg(error?.message || 'Impossibile scegliere la cartella.')
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  const handleResetExportDirectory = async () => {
+    clearMessages()
+    setBusyAction('export-directory')
+    try {
+      setExportPreference(await resetExportDirectory())
+      setSuccessMsg('Destinazione ripristinata: gli export useranno Download.')
+    } catch (error: any) {
+      setErrorMsg(error?.message || 'Impossibile ripristinare la destinazione.')
     } finally {
       setBusyAction(null)
     }
@@ -308,6 +371,84 @@ function AdminSettings() {
 
         <section className="island-shell rounded-2xl p-5 sm:rounded-[2rem] sm:p-6">
           <div className="relative mb-5 flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-600">
+              <KeyRound className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="display-title m-0 text-xl font-bold tracking-tight text-[var(--sea-ink)]">
+                Frase di recupero
+              </h2>
+              <p className="mt-1 text-xs font-semibold leading-relaxed text-[var(--sea-ink-soft)]">
+                Aggiorna la frase usata dalla schermata login per recuperare una password dimenticata.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleRecoveryPhraseSubmit} className="relative grid gap-4">
+            <div>
+              <label htmlFor="settings-recovery-current-password" className="mb-2 block text-xs font-bold uppercase text-[var(--sea-ink-soft)]">
+                Password attuale
+              </label>
+              <input
+                id="settings-recovery-current-password"
+                type="password"
+                value={recoveryCurrentPassword}
+                onChange={(event) => setRecoveryCurrentPassword(event.target.value)}
+                disabled={isBusy}
+                required
+                className="block w-full rounded-xl border border-[var(--line)] bg-white/50 px-4 py-3 text-sm text-[var(--sea-ink)] focus:border-teal-500/50 focus:outline-none"
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="settings-new-recovery" className="mb-2 block text-xs font-bold uppercase text-[var(--sea-ink-soft)]">
+                  Nuova frase
+                </label>
+                <input
+                  id="settings-new-recovery"
+                  type="password"
+                  value={newRecoveryPhrase}
+                  onChange={(event) => setNewRecoveryPhrase(event.target.value)}
+                  disabled={isBusy}
+                  required
+                  className="block w-full rounded-xl border border-[var(--line)] bg-white/50 px-4 py-3 text-sm text-[var(--sea-ink)] focus:border-teal-500/50 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="settings-confirm-recovery" className="mb-2 block text-xs font-bold uppercase text-[var(--sea-ink-soft)]">
+                  Conferma frase
+                </label>
+                <input
+                  id="settings-confirm-recovery"
+                  type="password"
+                  value={confirmRecoveryPhrase}
+                  onChange={(event) => setConfirmRecoveryPhrase(event.target.value)}
+                  disabled={isBusy}
+                  required
+                  className="block w-full rounded-xl border border-[var(--line)] bg-white/50 px-4 py-3 text-sm text-[var(--sea-ink)] focus:border-teal-500/50 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-teal-500/20 bg-teal-500/10 p-3 text-xs font-semibold leading-relaxed text-teal-700 dark:text-teal-200">
+              Minimo 3 parole e 16 caratteri. La frase non viene salvata in chiaro: resta recuperabile solo se la ricordi esattamente.
+            </div>
+
+            <button
+              type="submit"
+              disabled={isBusy}
+              className="mobile-action inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-3 text-xs font-extrabold text-white shadow-md shadow-teal-500/20 transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <KeyRound className="h-4 w-4" />
+              {busyAction === 'recovery' ? 'Aggiornamento...' : 'Aggiorna frase'}
+            </button>
+          </form>
+        </section>
+
+        <section className="island-shell rounded-2xl p-5 sm:rounded-[2rem] sm:p-6">
+          <div className="relative mb-5 flex items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600">
               <LifeBuoy className="h-5 w-5" />
             </div>
@@ -379,8 +520,53 @@ function AdminSettings() {
                 </button>
               </div>
 
+              <div className="mt-4 rounded-xl border border-[var(--line)] bg-white/30 p-3 dark:bg-white/5">
+                <div className="mb-3 flex items-start gap-2">
+                  <FolderDown className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  <div>
+                    <p className="text-xs font-extrabold uppercase text-[var(--sea-ink)]">
+                      Destinazione export
+                    </p>
+                    <p className="mt-1 text-xs font-semibold leading-relaxed text-[var(--sea-ink-soft)]">
+                      {exportPreference.mode === 'folder'
+                        ? `Cartella scelta: ${exportPreference.directoryName}`
+                        : 'Default: cartella Download del browser o del sistema.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={handleChooseExportDirectory}
+                    disabled={isBusy || !exportPreference.canChooseDirectory}
+                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:text-emerald-200"
+                    title={exportPreference.canChooseDirectory ? 'Scegli una cartella' : 'Non supportato da questo ambiente'}
+                  >
+                    <FolderDown className="h-4 w-4" />
+                    {busyAction === 'export-directory' ? 'Apertura...' : 'Scegli cartella'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResetExportDirectory}
+                    disabled={isBusy}
+                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-white/40 px-3 py-2.5 text-xs font-extrabold text-[var(--sea-ink-soft)] transition hover:bg-white/60 hover:text-[var(--sea-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Usa Download
+                  </button>
+                </div>
+
+                {!exportPreference.canChooseDirectory && (
+                  <p className="mt-2 text-[11px] font-semibold leading-relaxed text-[var(--sea-ink-soft)]">
+                    La scelta cartella richiede supporto File System Access. In questo ambiente i file vengono scaricati in Download.
+                  </p>
+                )}
+              </div>
+
               <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs font-semibold leading-relaxed text-amber-700 dark:text-amber-200">
-                Il backup contiene hash password e token QR: tienilo su una chiavetta o disco protetto, non in una chat pubblica.
+                Il backup contiene hash password, hash frase recupero e token QR: tienilo su una chiavetta o disco protetto, non in una chat pubblica.
               </div>
             </div>
 

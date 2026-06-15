@@ -15,15 +15,166 @@ const DUMMY_PASSWORD_HASH = 'pbkdf2_sha512$310000$000000000000000000000000000000
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 8;
+const RECOVERY_WINDOW_MS = 15 * 60 * 1000;
+const RECOVERY_LOCK_MS = 30 * 60 * 1000;
+const RECOVERY_MAX_FAILURES = 5;
 const MAX_BACKUP_BYTES = 20 * 1024 * 1024;
 const MAX_BACKUP_MEMBERS = 10000;
 const MAX_BACKUP_ATTENDANCES = 250000;
 
-const loginAttempts = new Map<string, {
-  failedCount: number;
-  windowStartedAt: number;
-  lockedUntil: number;
-}>();
+// SQLite-based rate limiting functions (persistent across restarts)
+async function assertLoginAllowed(username: string) {
+  const key = username.toLowerCase();
+  const now = new Date();
+
+  const attempt = await prisma.rateLimitAttempt.findUnique({
+    where: { identifier_type: { identifier: key, type: 'login' } },
+  });
+
+  if (!attempt) return;
+
+  if (attempt.lockedUntil && attempt.lockedUntil > now) {
+    const minutes = Math.ceil((attempt.lockedUntil.getTime() - now.getTime()) / 60000);
+    throw new Error(`Troppi tentativi non riusciti. Riprova tra ${minutes} min.`);
+  }
+
+  // Check if window has expired
+  const windowStart = attempt.windowStart;
+  if (now.getTime() - windowStart.getTime() > LOGIN_WINDOW_MS) {
+    // Window expired, delete the record
+    await prisma.rateLimitAttempt.delete({
+      where: { identifier_type: { identifier: key, type: 'login' } },
+    });
+    return;
+  }
+}
+
+async function recordLoginFailure(username: string) {
+  const key = username.toLowerCase();
+  const now = new Date();
+
+  const attempt = await prisma.rateLimitAttempt.findUnique({
+    where: { identifier_type: { identifier: key, type: 'login' } },
+  });
+
+  let nextFailedCount = 1;
+  let nextWindowStart = now;
+  let nextLockedUntil: Date | null = null;
+
+  if (attempt) {
+    const windowStart = attempt.windowStart;
+    if (now.getTime() - windowStart.getTime() <= LOGIN_WINDOW_MS) {
+      // Still in window
+      nextFailedCount = attempt.failedCount + 1;
+      nextWindowStart = windowStart;
+    }
+    // else window expired, start fresh (nextFailedCount = 1, nextWindowStart = now)
+  }
+
+  if (nextFailedCount >= LOGIN_MAX_FAILURES) {
+    nextLockedUntil = new Date(now.getTime() + LOGIN_LOCK_MS);
+  }
+
+  await prisma.rateLimitAttempt.upsert({
+    where: { identifier_type: { identifier: key, type: 'login' } },
+    create: {
+      identifier: key,
+      type: 'login',
+      failedCount: nextFailedCount,
+      windowStart: nextWindowStart,
+      lockedUntil: nextLockedUntil,
+    },
+    update: {
+      failedCount: nextFailedCount,
+      windowStart: nextWindowStart,
+      lockedUntil: nextLockedUntil,
+      updatedAt: now,
+    },
+  });
+}
+
+async function clearLoginFailures(username: string) {
+  const key = username.toLowerCase();
+  await prisma.rateLimitAttempt.deleteMany({
+    where: { identifier: key, type: 'login' },
+  });
+}
+
+async function assertRecoveryAllowed(username: string) {
+  const key = username.toLowerCase();
+  const now = new Date();
+
+  const attempt = await prisma.rateLimitAttempt.findUnique({
+    where: { identifier_type: { identifier: key, type: 'recovery' } },
+  });
+
+  if (!attempt) return;
+
+  if (attempt.lockedUntil && attempt.lockedUntil > now) {
+    const minutes = Math.ceil((attempt.lockedUntil.getTime() - now.getTime()) / 60000);
+    throw new Error(`Troppi tentativi di recupero. Riprova tra ${minutes} min.`);
+  }
+
+  // Check if window has expired
+  const windowStart = attempt.windowStart;
+  if (now.getTime() - windowStart.getTime() > RECOVERY_WINDOW_MS) {
+    // Window expired, delete the record
+    await prisma.rateLimitAttempt.delete({
+      where: { identifier_type: { identifier: key, type: 'recovery' } },
+    });
+    return;
+  }
+}
+
+async function recordRecoveryFailure(username: string) {
+  const key = username.toLowerCase();
+  const now = new Date();
+
+  const attempt = await prisma.rateLimitAttempt.findUnique({
+    where: { identifier_type: { identifier: key, type: 'recovery' } },
+  });
+
+  let nextFailedCount = 1;
+  let nextWindowStart = now;
+  let nextLockedUntil: Date | null = null;
+
+  if (attempt) {
+    const windowStart = attempt.windowStart;
+    if (now.getTime() - windowStart.getTime() <= RECOVERY_WINDOW_MS) {
+      // Still in window
+      nextFailedCount = attempt.failedCount + 1;
+      nextWindowStart = windowStart;
+    }
+  }
+
+  if (nextFailedCount >= RECOVERY_MAX_FAILURES) {
+    nextLockedUntil = new Date(now.getTime() + RECOVERY_LOCK_MS);
+  }
+
+  await prisma.rateLimitAttempt.upsert({
+    where: { identifier_type: { identifier: key, type: 'recovery' } },
+    create: {
+      identifier: key,
+      type: 'recovery',
+      failedCount: nextFailedCount,
+      windowStart: nextWindowStart,
+      lockedUntil: nextLockedUntil,
+    },
+    update: {
+      failedCount: nextFailedCount,
+      windowStart: nextWindowStart,
+      lockedUntil: nextLockedUntil,
+      updatedAt: now,
+    },
+  });
+}
+
+async function clearRecoveryFailures(username: string) {
+  const key = username.toLowerCase();
+  await prisma.rateLimitAttempt.deleteMany({
+    where: { identifier: key, type: 'recovery' },
+  });
+}
 
 function assertRecord(data: unknown): asserts data is Record<string, unknown> {
   if (!data || typeof data !== 'object') {
@@ -93,6 +244,19 @@ function assertStrongPassword(password: string, message: string) {
   }
 }
 
+function normalizeRecoveryPhrase(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function assertStrongRecoveryPhrase(phrase: string) {
+  const normalized = normalizeRecoveryPhrase(phrase);
+  const wordCount = normalized.split(' ').filter(Boolean).length;
+
+  if (normalized.length < 16 || wordCount < 3) {
+    throw new Error('La frase di recupero deve contenere almeno 3 parole e 16 caratteri.');
+  }
+}
+
 function assertAllowedRole(role: string): asserts role is 'admin' | 'user' {
   if (role !== 'admin' && role !== 'user') {
     throw new Error('Backup non valido: ruolo non riconosciuto');
@@ -122,42 +286,6 @@ function assertPasswordHash(value: string) {
   if (legacy) return;
 
   throw new Error('Backup non valido: hash password non riconosciuto');
-}
-
-function assertLoginAllowed(username: string) {
-  const key = username.toLowerCase();
-  const attempt = loginAttempts.get(key);
-  const now = Date.now();
-
-  if (!attempt) return;
-
-  if (attempt.lockedUntil > now) {
-    const minutes = Math.ceil((attempt.lockedUntil - now) / 60000);
-    throw new Error(`Troppi tentativi non riusciti. Riprova tra ${minutes} min.`);
-  }
-
-  if (now - attempt.windowStartedAt > LOGIN_WINDOW_MS) {
-    loginAttempts.delete(key);
-  }
-}
-
-function recordLoginFailure(username: string) {
-  const key = username.toLowerCase();
-  const now = Date.now();
-  const current = loginAttempts.get(key);
-  const next = !current || now - current.windowStartedAt > LOGIN_WINDOW_MS
-    ? { failedCount: 1, windowStartedAt: now, lockedUntil: 0 }
-    : { ...current, failedCount: current.failedCount + 1 };
-
-  if (next.failedCount >= LOGIN_MAX_FAILURES) {
-    next.lockedUntil = now + LOGIN_LOCK_MS;
-  }
-
-  loginAttempts.set(key, next);
-}
-
-function clearLoginFailures(username: string) {
-  loginAttempts.delete(username.toLowerCase());
 }
 
 function generateTemporaryPassword(length = 12): string {
@@ -253,6 +381,65 @@ function assertReadyAdmin(user: AuthenticatedUser | null): asserts user is Authe
   }
 }
 
+async function getBootstrapAdmin() {
+  const memberCount = await prisma.member.count();
+
+  if (memberCount === 0) {
+    return await prisma.member.create({
+      data: {
+        first_name: 'Admin',
+        last_name: 'Club',
+        member_number: null,
+        qr_token: null,
+        username: 'admin',
+        password: hashPassword(crypto.randomBytes(32).toString('base64url')),
+        recovery_phrase_hash: null,
+        joined_at: new Date(),
+        expiry_date: null,
+        password_changed: false,
+        must_setup: true,
+        role: {
+          create: {
+            role: 'admin',
+          },
+        },
+      },
+      include: { role: true },
+    });
+  }
+
+  if (memberCount !== 1) return null;
+
+  const admin = await prisma.member.findFirst({
+    include: { role: true },
+  });
+
+  if (!admin || admin.role?.role !== 'admin') return null;
+  if (!admin.must_setup && admin.password_changed && admin.recovery_phrase_hash) return null;
+
+  return admin;
+}
+
+function serializeAuthenticatedMember(member: Awaited<ReturnType<typeof getBootstrapAdmin>>) {
+  if (!member) return null;
+
+  const role = member.role?.role || 'user';
+
+  return {
+    id: member.id,
+    first_name: member.first_name,
+    last_name: member.last_name,
+    member_number: role === 'admin' ? null : member.member_number,
+    qr_token: role === 'admin' ? null : member.qr_token,
+    username: member.username,
+    joined_at: member.joined_at.toISOString(),
+    expiry_date: role === 'admin' ? null : member.expiry_date?.toISOString() ?? null,
+    password_changed: member.password_changed,
+    must_setup: member.must_setup,
+    role,
+  };
+}
+
 // Password complexity Zod schema (min 8 chars, 1 uppercase, 1 number, 1 symbol)
 export const setupValidator = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => {
@@ -260,6 +447,7 @@ export const setupValidator = createServerFn({ method: 'POST' })
     return {
       username: requiredString(data, 'username', 80),
       password: requiredString(data, 'password', 256),
+      recovery_phrase: requiredString(data, 'recovery_phrase', 500),
     };
   })
   .handler(async ({ data }) => {
@@ -269,6 +457,7 @@ export const setupValidator = createServerFn({ method: 'POST' })
     }
 
     assertStrongPassword(data.password, 'La password deve contenere almeno 8 caratteri, una maiuscola, un numero e un simbolo.');
+    assertStrongRecoveryPhrase(data.recovery_phrase);
 
     const trimmedUsername = data.username.trim().toLowerCase();
     if (trimmedUsername.length < 3) {
@@ -288,6 +477,7 @@ export const setupValidator = createServerFn({ method: 'POST' })
     }
 
     const hashed = hashPassword(data.password);
+    const recoveryPhraseHash = hashPassword(normalizeRecoveryPhrase(data.recovery_phrase));
 
     try {
       await prisma.member.update({
@@ -295,6 +485,7 @@ export const setupValidator = createServerFn({ method: 'POST' })
         data: {
           username: trimmedUsername,
           password: hashed,
+          recovery_phrase_hash: recoveryPhraseHash,
           password_changed: true,
           must_setup: false,
         },
@@ -366,6 +557,7 @@ export const changeAdminPasswordFn = createServerFn({ method: 'POST' })
       },
     });
 
+    // Revoke all existing sessions (security: rotate session on password change)
     await prisma.session.updateMany({
       where: {
         memberId: admin.id,
@@ -376,7 +568,131 @@ export const changeAdminPasswordFn = createServerFn({ method: 'POST' })
       },
     });
 
+    // Create new session with fresh token
     await setSession(admin.id);
+
+    return { success: true };
+  });
+
+export const changeAdminRecoveryPhraseFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => {
+    assertRecord(data);
+    return {
+      current_password: requiredString(data, 'current_password', 256),
+      recovery_phrase: requiredString(data, 'recovery_phrase', 500),
+    };
+  })
+  .handler(async ({ data }) => {
+    const user = await getAuthenticatedUser();
+    assertReadyAdmin(user);
+
+    const admin = await prisma.member.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        password: true,
+        role: true,
+      },
+    });
+
+    if (!admin || admin.role?.role !== 'admin') {
+      throw new Error('Accesso non autorizzato');
+    }
+
+    if (!verifyPassword(data.current_password, admin.password)) {
+      throw new Error('La password attuale non è corretta');
+    }
+
+    assertStrongRecoveryPhrase(data.recovery_phrase);
+
+    await prisma.member.update({
+      where: { id: admin.id },
+      data: {
+        recovery_phrase_hash: hashPassword(normalizeRecoveryPhrase(data.recovery_phrase)),
+      },
+    });
+
+    // Revoke all existing sessions (security: rotate session on recovery phrase change)
+    await prisma.session.updateMany({
+      where: {
+        memberId: admin.id,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+
+    // Create new session with fresh token
+    await setSession(admin.id);
+
+    return { success: true };
+  });
+
+export const recoverPasswordFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => {
+    assertRecord(data);
+    return {
+      username: requiredString(data, 'username', 80),
+      recovery_phrase: requiredString(data, 'recovery_phrase', 500),
+      new_password: requiredString(data, 'new_password', 256),
+    };
+  })
+  .handler(async ({ data }) => {
+    const username = data.username.trim().toLowerCase();
+    // Always check rate limit first (constant-time for non-existent users)
+    await assertRecoveryAllowed(username);
+    assertStrongPassword(data.new_password, 'La nuova password deve contenere almeno 8 caratteri, una maiuscola, un numero e un simbolo.');
+
+    const member = await prisma.member.findUnique({
+      where: { username },
+      select: {
+        id: true,
+        password: true,
+        recovery_phrase_hash: true,
+      },
+    });
+
+    // Always verify recovery phrase (constant-time using dummy hash for non-existent users)
+    const storedRecoveryHash = member?.recovery_phrase_hash ?? DUMMY_PASSWORD_HASH;
+    const isValidRecovery = verifyPassword(normalizeRecoveryPhrase(data.recovery_phrase), storedRecoveryHash);
+
+    // Check if member exists AND has recovery phrase set AND phrase is valid
+    const memberExistsAndValid = member && member.recovery_phrase_hash && isValidRecovery;
+
+    if (!memberExistsAndValid) {
+      // Always record failure (even for non-existent users) to prevent enumeration
+      await recordRecoveryFailure(username);
+      throw new Error('Username o frase di recupero non validi.');
+    }
+
+    if (verifyPassword(data.new_password, member.password)) {
+      throw new Error('La nuova password deve essere diversa da quella attuale');
+    }
+
+    await clearRecoveryFailures(username);
+    await clearLoginFailures(username);
+
+    await prisma.member.update({
+      where: { id: member.id },
+      data: {
+        password: hashPassword(data.new_password),
+        password_changed: true,
+        must_setup: false,
+      },
+    });
+
+    await prisma.session.updateMany({
+      where: {
+        memberId: member.id,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+
+    await setSession(member.id);
 
     return { success: true };
   });
@@ -391,7 +707,8 @@ export const loginFn = createServerFn({ method: 'POST' })
   })
   .handler(async ({ data }) => {
     const searchUsername = data.username.trim().toLowerCase();
-    assertLoginAllowed(searchUsername);
+    // Always check rate limit first (constant-time for non-existent users)
+    await assertLoginAllowed(searchUsername);
 
     const member = await prisma.member.findUnique({
       where: { username: searchUsername },
@@ -403,17 +720,19 @@ export const loginFn = createServerFn({ method: 'POST' })
       },
     });
 
+    // Always verify password (constant-time using dummy hash for non-existent users)
     const passwordHash = member?.password ?? DUMMY_PASSWORD_HASH;
     const isValid = verifyPassword(data.password, passwordHash);
 
     if (!member || !isValid) {
-      recordLoginFailure(searchUsername);
+      // Always record failure (even for non-existent users) to prevent enumeration
+      await recordLoginFailure(searchUsername);
       throw new Error('Credenziali non valide');
     }
 
-    clearLoginFailures(searchUsername);
+    await clearLoginFailures(searchUsername);
 
-    // Setup session cookie
+    await destroySession();
     await setSession(member.id);
 
     return {
@@ -430,7 +749,14 @@ export const logoutFn = createServerFn({ method: 'POST' })
 
 export const getCurrentUserFn = createServerFn({ method: 'GET' })
   .handler(async () => {
-    return await getAuthenticatedUser();
+    const user = await getAuthenticatedUser();
+    if (user) return user;
+
+    const bootstrapAdmin = await getBootstrapAdmin();
+    if (!bootstrapAdmin) return null;
+
+    await setSession(bootstrapAdmin.id);
+    return serializeAuthenticatedMember(bootstrapAdmin);
   });
 
 // Admin-guarded: Get all members
@@ -1011,7 +1337,136 @@ export const exportBackupFn = createServerFn({ method: 'GET' })
       application: 'gestore-pub',
       version: 1,
       exported_at: exportedAt,
-      notes: 'Backup completo: contiene hash password, token QR, soci, ruoli e storico presenze. Conservare in modo privato.',
+      notes: 'Backup standard: contiene anagrafica soci, token QR, ruoli e storico presenze. NON contiene hash password né hash frase di recupero. Per migrazione completa usare exportFullBackupFn (solo admin esperto).',
+      data: {
+        members: members.map((member) => ({
+          id: member.id,
+          first_name: member.first_name,
+          last_name: member.last_name,
+          member_number: member.member_number,
+          qr_token: member.qr_token,
+          username: member.username,
+          joined_at: member.joined_at.toISOString(),
+          expiry_date: member.expiry_date?.toISOString() ?? null,
+          password_changed: member.password_changed,
+          must_setup: member.must_setup,
+          has_recovery_phrase: Boolean(member.recovery_phrase_hash),
+          role: member.role
+            ? {
+                id: member.role.id,
+                role: member.role.role,
+              }
+            : null,
+        })),
+        attendances: attendances.map((attendance) => ({
+          id: attendance.id,
+          member_id: attendance.member_id,
+          check_in_time: attendance.check_in_time.toISOString(),
+          check_in_day: attendance.check_in_day,
+          member_first_name: attendance.member_first_name,
+          member_last_name: attendance.member_last_name,
+          member_number: attendance.member_number,
+          member_was_deleted: attendance.member_was_deleted,
+        })),
+      },
+    };
+
+    const memberCsv = toCsv(
+      [
+        'id',
+        'role',
+        'first_name',
+        'last_name',
+        'member_number',
+        'username',
+        'joined_at',
+        'expiry_date',
+        'password_changed',
+        'must_setup',
+        'qr_token',
+        'has_recovery_phrase',
+      ],
+      backup.data.members.map((member) => [
+        member.id,
+        member.role?.role ?? '',
+        member.first_name,
+        member.last_name,
+        member.member_number ?? '',
+        member.username,
+        member.joined_at,
+        member.expiry_date ?? '',
+        member.password_changed,
+        member.must_setup,
+        member.qr_token ?? '',
+        member.has_recovery_phrase,
+      ])
+    );
+
+    const attendanceCsv = toCsv(
+      [
+        'id',
+        'member_id',
+        'check_in_day',
+        'check_in_time',
+        'member_first_name',
+        'member_last_name',
+        'member_number',
+        'member_was_deleted',
+      ],
+      backup.data.attendances.map((attendance) => [
+        attendance.id,
+        attendance.member_id ?? '',
+        attendance.check_in_day,
+        attendance.check_in_time,
+        attendance.member_first_name,
+        attendance.member_last_name,
+        attendance.member_number,
+        attendance.member_was_deleted,
+      ])
+    );
+
+    return {
+      exported_at: exportedAt,
+      backup,
+      csv: {
+        members: memberCsv,
+        attendances: attendanceCsv,
+      },
+      counts: {
+        members: members.length,
+        attendances: attendances.length,
+      },
+    };
+  });
+
+// Expert-only: Full backup including password hashes and recovery phrase hashes
+// WARNING: Contains sensitive credentials. Encrypt before storing/transferring.
+export const exportFullBackupFn = createServerFn({ method: 'GET' })
+  .handler(async () => {
+    const user = await getAuthenticatedUser();
+    assertReadyAdmin(user);
+
+    const [members, attendances] = await Promise.all([
+      prisma.member.findMany({
+        include: { role: true },
+        orderBy: [
+          { role: { role: 'asc' } },
+          { last_name: 'asc' },
+          { first_name: 'asc' },
+        ],
+      }),
+      prisma.attendance.findMany({
+        orderBy: [
+          { check_in_day: 'asc' },
+          { check_in_time: 'asc' },
+        ],
+      }),
+    ]);
+
+    const exportedAt = new Date().toISOString();
+    const backup = {
+      application: 'gestore-pub',
+      notes: 'BACKUP COMPLETO (ESPERTO): Contiene hash password, hash frase recupero, token QR. CIFRARE PRIMA DI SALVARE/TRASFERIRE. Uso solo per migrazione server o disaster recovery.',
       data: {
         members: members.map((member) => ({
           id: member.id,
@@ -1021,6 +1476,7 @@ export const exportBackupFn = createServerFn({ method: 'GET' })
           qr_token: member.qr_token,
           username: member.username,
           password: member.password,
+          recovery_phrase_hash: member.recovery_phrase_hash,
           joined_at: member.joined_at.toISOString(),
           expiry_date: member.expiry_date?.toISOString() ?? null,
           password_changed: member.password_changed,
@@ -1058,6 +1514,7 @@ export const exportBackupFn = createServerFn({ method: 'GET' })
         'password_changed',
         'must_setup',
         'qr_token',
+        'recovery_phrase_set',
       ],
       backup.data.members.map((member) => [
         member.id,
@@ -1071,6 +1528,7 @@ export const exportBackupFn = createServerFn({ method: 'GET' })
         member.password_changed,
         member.must_setup,
         member.qr_token ?? '',
+        Boolean(member.recovery_phrase_hash),
       ])
     );
 
@@ -1170,8 +1628,30 @@ export const restoreBackupFn = createServerFn({ method: 'POST' })
       const roleValue = requiredString(role, 'role', 20);
       assertAllowedRole(roleValue);
 
-      const password = requiredString(rawMember, 'password', 500);
-      assertPasswordHash(password);
+      // Support both old (full) and new (standard) backup formats
+      // New format: has_recovery_phrase boolean, no password/recovery_phrase_hash
+      // Old format: password and recovery_phrase_hash strings
+      const hasPassword = typeof rawMember.password === 'string' && rawMember.password.length > 0;
+      const hasRecoveryHash = typeof rawMember.recovery_phrase_hash === 'string' && rawMember.recovery_phrase_hash.length > 0;
+      const isFullBackup = hasPassword || hasRecoveryHash;
+
+      let password: string;
+      let recoveryPhraseHash: string | null = null;
+
+      if (isFullBackup) {
+        // Full backup (legacy/migration) - requires password and optionally recovery_phrase_hash
+        password = requiredString(rawMember, 'password', 500);
+        assertPasswordHash(password);
+        const rph = nullableString(rawMember, 'recovery_phrase_hash', 500);
+        if (rph) {
+          assertPasswordHash(rph);
+          recoveryPhraseHash = rph;
+        }
+      } else {
+        // Standard backup - generate new secure password, no recovery phrase
+        password = hashPassword(generateTemporaryPassword(16));
+        // recoveryPhraseHash remains null
+      }
 
       return {
         id: requiredString(rawMember, 'id', 120),
@@ -1181,6 +1661,7 @@ export const restoreBackupFn = createServerFn({ method: 'POST' })
         qr_token: nullableString(rawMember, 'qr_token', 120),
         username: requiredString(rawMember, 'username', 80).toLowerCase(),
         password,
+        recovery_phrase_hash: recoveryPhraseHash,
         joined_at: requiredDateString(rawMember, 'joined_at'),
         expiry_date: optionalDateString(rawMember, 'expiry_date') ?? null,
         password_changed: Boolean(rawMember.password_changed),
@@ -1252,6 +1733,7 @@ export const restoreBackupFn = createServerFn({ method: 'POST' })
             qr_token: member.qr_token,
             username: member.username,
             password: member.password,
+            recovery_phrase_hash: member.recovery_phrase_hash,
             joined_at: new Date(member.joined_at),
             expiry_date: member.expiry_date ? new Date(member.expiry_date) : null,
             password_changed: member.password_changed,

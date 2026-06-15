@@ -14,7 +14,8 @@ const config = defineConfig(({ command, mode }) => ({
     host: '127.0.0.1',
   },
   plugins: [
-    devtools(),
+    // Only include devtools in development mode
+    command === 'serve' && devtools(),
     command === 'serve' && process.env.TSS_PRERENDERING !== 'true'
       ? basicSsl()
       : null,

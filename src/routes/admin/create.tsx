@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { createMemberFn } from '../../lib/api'
+import { savePdfDocument } from '../../lib/export-preferences'
 import { QRCodeCanvas } from 'qrcode.react'
 import { jsPDF } from 'jspdf'
 import { UserPlus, ShieldAlert, ArrowLeft, Download, Award, ShieldCheck } from 'lucide-react'
@@ -81,7 +82,7 @@ function CreateMember() {
   }
 
   // Generate and Download PDF Tessera (CR80 Credit Card dimensions: 85mm x 55mm)
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!createdMember) return
     setPdfDownloading(true)
 
@@ -153,7 +154,7 @@ function CreateMember() {
 
       // 8. Trigger local download of file
       const fileName = `tessera-${createdMember.first_name.toLowerCase()}-${createdMember.last_name.toLowerCase()}.pdf`
-      doc.save(fileName)
+      await savePdfDocument(doc, fileName)
     } catch (e) {
       console.error(e)
       alert('Errore durante la generazione del file PDF.')
