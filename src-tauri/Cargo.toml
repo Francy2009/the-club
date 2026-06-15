@@ -1,6 +1,6 @@
 [package]
 name = "gestore-pub"
-version = "1.0.9"
+version = "1.0.10"
 description = "Gestore Pub - Club Privato Management"
 edition = "2021"
 authors = ["Francesco Dell'Orto"]
@@ -10,4 +10,4 @@ build = "build.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["macos-private-api"] }

@@ -7,6 +7,26 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-06-15
+
+### Corretto
+- Configurazione Tauri v2 valida rimuovendo la chiave legacy `allowlist` che bloccava le build GitHub Actions.
+
+## [1.0.9] - 2026-06-15
+
+### Aggiunto
+- Frase di recupero amministratore con hash separato.
+- Rate limiting persistente su SQLite per login e recupero password.
+- Middleware CSRF globale per richieste non-GET.
+- Backup standard senza hash password/frase recupero e report di audit sicurezza.
+- Test desktop per bootstrap primo avvio.
+
+### Corretto
+- Percorsi login/recupero uniformati per ridurre username enumeration.
+- Rotazione sessione su login, cambio password e cambio frase recupero.
+- DevTools esclusi dalla build produzione.
+- CSP Tauri abilitata.
+
 ## [1.0.8] - 2026-06-08
 
 ### Corretto
@@ -71,7 +91,9 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 - Autenticazione JWT + bcrypt
 - TypeScript strict mode
 
-[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.8...HEAD
+[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.10...HEAD
+[1.0.10]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.9...v1.0.10
+[1.0.9]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.8...v1.0.9
 [1.0.8]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.5...v1.0.6

@@ -100,10 +100,10 @@ cargo tauri build
 - macOS: `.dmg`, `.app`
 - Linux: `.AppImage`, `.deb`, `.rpm`
 
-### Permessi Tauri Configurati
-- `fs:allow-read`, `fs:allow-write` (export/backup)
-- `dialog:allow-open`, `dialog:allow-save` (scelta cartella)
-- `shell:allow-execute` (solo comandi interni sicuri)
+### Sicurezza Tauri
+- CSP restrittiva abilitata nel bundle desktop
+- Nessuna `allowlist` legacy Tauri v1 nella configurazione
+- Gli export usano API browser quando disponibili, senza permessi Tauri aggiuntivi
 
 ## 📁 Export, PDF, Backup e Cartella Personalizzata
 
