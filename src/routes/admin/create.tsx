@@ -73,6 +73,9 @@ function CreateMember() {
         setLastName('')
         setMemberNumber('')
         setStartDate(getTodayInputValue())
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        })
       }
     } catch (err: any) {
       setError(err?.message || 'Errore durante la creazione del membro.')
@@ -164,7 +167,7 @@ function CreateMember() {
   }
 
   return (
-    <main className="page-wrap pb-10 pt-4 sm:px-4 sm:pb-12 sm:pt-8">
+    <main className="page-wrap pb-6 pt-2 sm:px-4 sm:pb-8 sm:pt-4">
       <div className="mx-auto max-w-lg">
         {/* Back Link */}
         <Link
@@ -177,28 +180,29 @@ function CreateMember() {
  
         {createdMember ? (
           /* Tessera Preview and PDF Download Box */
-          <section className="island-shell rise-in relative flex flex-col items-center overflow-hidden rounded-2xl border-emerald-500/20 bg-emerald-500/5 p-4 sm:rounded-[2rem] sm:p-10">
+          <section className="island-shell rise-in relative flex flex-col items-center overflow-hidden rounded-2xl border-emerald-500/20 bg-emerald-500/5 p-2 sm:rounded-[2rem] sm:p-4">
             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none" />
             
-            <div className="flex flex-col items-center mb-6 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-3">
-                <ShieldCheck className="h-6 w-6" />
+            <div className="mb-4 flex w-full items-center gap-3 text-left">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
+                <ShieldCheck className="h-5 w-5" />
               </div>
-              <h2 className="display-title text-xl font-bold leading-tight tracking-tight text-[var(--sea-ink)]">
-                Socio Registrato con Successo!
-              </h2>
-              <p className="text-xs text-[var(--sea-ink-soft)] mt-1 max-w-xs leading-normal">
-                La tessera digitale e il relativo QR Code statico per gli accessi sono pronti per essere scaricati.
-              </p>
+              <div className="min-w-0">
+                <h2 className="display-title text-lg font-bold leading-tight tracking-tight text-[var(--sea-ink)] sm:text-xl">
+                  Socio registrato
+                </h2>
+                <p className="mt-1 text-xs font-medium leading-normal text-[var(--sea-ink-soft)]">
+                  Tessera digitale pronta per il download.
+                </p>
+              </div>
             </div>
  
-            {/* Premium Tessera Preview Card layout - Dual Column with Live QR Code */}
-            <div className="relative mb-6 flex aspect-[1.58] w-full max-w-md flex-row justify-between overflow-hidden rounded-2xl bg-gradient-to-tr from-emerald-600/90 to-teal-800/90 p-5 text-white shadow-2xl border border-white/10 sm:h-56 sm:p-6 sm:mb-8 transition hover:scale-[1.01]">
+            {/* Compact tessera preview. The printable QR stays only inside the generated PDF. */}
+            <div className="relative mb-3 flex min-h-40 w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-tr from-emerald-600/90 to-teal-800/90 p-4 text-white shadow-xl transition hover:scale-[1.01] sm:min-h-44 sm:p-5">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-xl pointer-events-none" />
               
-              {/* Left Column: Branding and Member Info */}
-              <div className="flex flex-col justify-between flex-1 h-full min-w-0 pr-4">
+              <div className="flex min-h-0 w-full flex-col justify-between">
                 {/* Brand Header */}
                 <div className="flex flex-col">
                   <span className="font-bold tracking-wider text-xs uppercase text-emerald-300">The Club</span>
@@ -206,7 +210,7 @@ function CreateMember() {
                 </div>
 
                 {/* Member Name and Card Number */}
-                <div className="flex flex-col my-auto">
+                <div className="flex flex-col py-5">
                   <span className="text-base font-bold uppercase leading-tight tracking-wide text-white truncate sm:text-lg">
                     {createdMember.first_name} {createdMember.last_name}
                   </span>
@@ -221,20 +225,7 @@ function CreateMember() {
                 {/* Footer status dot */}
                 <div className="flex items-center gap-1.5 border-t border-white/10 pt-2 text-[9px] text-white/60">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>QR Code Statico Collegato</span>
-                </div>
-              </div>
-
-              {/* Right Column: Embedded QR Code Container */}
-              <div className="flex-shrink-0 flex items-center justify-center self-center z-10">
-                <div className="rounded-xl border border-white/10 bg-white p-2 sm:p-2.5 shadow-lg flex items-center justify-center">
-                  <QRCodeCanvas 
-                    value={createdMember.qr_token || createdMember.id} 
-                    size={85}
-                    fgColor="#0f1a1e"
-                    bgColor="#ffffff"
-                    includeMargin={false}
-                  />
+                  <span>PDF con QR pronto</span>
                 </div>
               </div>
             </div>
@@ -252,18 +243,11 @@ function CreateMember() {
               />
             </div>
 
-            {/* Download Alert Info */}
-            <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs font-semibold leading-relaxed text-emerald-600 sm:mb-6 sm:p-3.5">
-              <span>
-                Cliccando su "Scarica Tessera PDF", verrà salvato un file tessera pronto per essere stampato o inviato al socio.
-              </span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
               <button
                 onClick={handleDownloadPDF}
                 disabled={pdfDownloading}
-                className="mobile-action flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 py-3 text-xs font-extrabold text-emerald-600 transition hover:bg-emerald-500/25 disabled:opacity-50"
+                className="mobile-action flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 py-2 text-xs font-extrabold text-emerald-600 transition hover:bg-emerald-500/25 disabled:opacity-50"
               >
                 <Download className="w-4 h-4 animate-bounce" />
                 {pdfDownloading ? 'Generazione...' : 'Scarica Tessera PDF'}
@@ -271,11 +255,15 @@ function CreateMember() {
               
               <button
                 onClick={() => setCreatedMember(null)}
-                className="mobile-action flex flex-1 cursor-pointer items-center justify-center rounded-xl bg-rose-500 px-3 py-3 text-xs font-bold text-white shadow-md shadow-rose-500/20 transition hover:bg-rose-600"
+                className="mobile-action flex flex-1 cursor-pointer items-center justify-center rounded-xl bg-rose-500 px-3 py-2 text-xs font-bold text-white shadow-md shadow-rose-500/20 transition hover:bg-rose-600"
               >
                 Nuova Registrazione
               </button>
             </div>
+
+            <p className="mt-2 w-full rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2 text-xs font-semibold leading-relaxed text-emerald-600">
+              Il PDF contiene il QR Code ed è pronto per essere stampato o inviato al socio.
+            </p>
           </section>
         ) : (
           /* Create Form */
@@ -293,13 +281,13 @@ function CreateMember() {
             </div>
 
             {error && (
-              <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-red-500/20 bg-red-500/10 p-3.5 text-sm text-red-500">
-                <ShieldAlert className="h-5 w-5 shrink-0" />
+              <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-500">
+                <ShieldAlert className="h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label
                   htmlFor="firstName"

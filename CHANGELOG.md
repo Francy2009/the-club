@@ -7,6 +7,15 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.14] - 2026-06-17
+
+### Aggiunto
+- Salvataggio export desktop nella cartella Download tramite comandi Tauri, con dialog di conferma e apertura cartella.
+
+### Corretto
+- Gli export desktop non sovrascrivono piu file esistenti: vengono creati nomi progressivi.
+- L'apertura della cartella export e limitata alla cartella Download gestita dall'app.
+
 ## [1.0.13] - 2026-06-16
 
 ### Modificato
@@ -110,7 +119,10 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 - Autenticazione JWT + bcrypt
 - TypeScript strict mode
 
-[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.11...HEAD
+[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.14...HEAD
+[1.0.14]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.13...v1.0.14
+[1.0.13]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.12...v1.0.13
+[1.0.12]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.11...v1.0.12
 [1.0.11]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.10...v1.0.11
 [1.0.10]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.9...v1.0.10
 [1.0.9]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.8...v1.0.9

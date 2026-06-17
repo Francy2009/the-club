@@ -545,7 +545,7 @@ function AdminSettings() {
 
                 {!exportPreference.canChooseDirectory && (
                   <p className="mt-2 text-[11px] font-semibold leading-relaxed text-[var(--sea-ink-soft)]">
-                    La scelta cartella richiede supporto File System Access. In questo ambiente i file vengono scaricati in Download.
+                    Su questo ambiente la scelta cartella libera non è disponibile. Gli export vengono salvati in Download e, nell'app desktop, puoi aprire la cartella dal popup di conferma.
                   </p>
                 )}
               </div>

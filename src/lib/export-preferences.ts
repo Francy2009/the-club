@@ -5,9 +5,12 @@ type ExportPreference = {
   directoryName: string | null
 }
 
-type SaveResult = {
+export type SaveResult = {
   method: ExportMode
   directoryName: string | null
+  directoryPath: string | null
+  filePath: string | null
+  canOpenDirectory: boolean
 }
 
 type DirectoryHandle = {
@@ -25,9 +28,15 @@ type DirectoryHandle = {
 declare global {
   interface Window {
     showDirectoryPicker?: (options?: { mode?: 'read' | 'readwrite' }) => Promise<DirectoryHandle>
+    __TAURI__?: {
+      core?: {
+        invoke: <T>(command: string, args?: Record<string, unknown>) => Promise<T>
+      }
+    }
   }
 }
 
+export const DOWNLOAD_SUCCESS_EVENT = 'gestore-pub:download-success'
 const EXPORT_PREF_KEY = 'gestore-pub:export-preference'
 const EXPORT_DB_NAME = 'gestore-pub-export-settings'
 const EXPORT_STORE_NAME = 'handles'
@@ -134,6 +143,45 @@ function downloadBlob(filename: string, blob: Blob) {
   URL.revokeObjectURL(url)
 }
 
+function getTauriInvoke() {
+  if (typeof window === 'undefined') return null
+  return window.__TAURI__?.core?.invoke ?? null
+}
+
+function formatDirectoryName(path: string) {
+  const normalized = path.replace(/\\/g, '/').replace(/\/+$/, '')
+  return normalized.split('/').pop() || path
+}
+
+async function saveBlobWithTauri(filename: string, blob: Blob): Promise<SaveResult | null> {
+  const invoke = getTauriInvoke()
+  if (!invoke) return null
+
+  const bytes = Array.from(new Uint8Array(await blob.arrayBuffer()))
+  const [filePath, directoryPath] = await invoke<[string, string]>('save_export_file', {
+    filename,
+    bytes,
+  })
+
+  return {
+    method: 'downloads',
+    directoryName: formatDirectoryName(directoryPath),
+    directoryPath,
+    filePath,
+    canOpenDirectory: true,
+  }
+}
+
+function announceDownloadSuccess(filename: string, result: SaveResult) {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent(DOWNLOAD_SUCCESS_EVENT, {
+    detail: {
+      filename,
+      ...result,
+    },
+  }))
+}
+
 export function getExportPreference(): ExportPreference & { canChooseDirectory: boolean } {
   if (typeof window === 'undefined') {
     return {
@@ -182,7 +230,7 @@ export async function resetExportDirectory(): Promise<ExportPreference & { canCh
 
 export async function saveBlobToPreferredDestination(filename: string, blob: Blob): Promise<SaveResult> {
   if (typeof window === 'undefined') {
-    return { method: 'downloads', directoryName: null }
+    return { method: 'downloads', directoryName: null, directoryPath: null, filePath: null, canOpenDirectory: false }
   }
 
   const preference = readPreference()
@@ -194,12 +242,46 @@ export async function saveBlobToPreferredDestination(filename: string, blob: Blo
       const writable = await fileHandle.createWritable()
       await writable.write(blob)
       await writable.close()
-      return { method: 'folder', directoryName: handle.name }
+      const result = {
+        method: 'folder',
+        directoryName: handle.name,
+        directoryPath: null,
+        filePath: null,
+        canOpenDirectory: false,
+      } satisfies SaveResult
+      announceDownloadSuccess(filename, result)
+      return result
     }
   }
 
+  const tauriResult = await saveBlobWithTauri(filename, blob)
+  if (tauriResult) {
+    announceDownloadSuccess(filename, tauriResult)
+    return tauriResult
+  }
+
   downloadBlob(filename, blob)
-  return { method: 'downloads', directoryName: null }
+  const result = {
+    method: 'downloads',
+    directoryName: null,
+    directoryPath: null,
+    filePath: null,
+    canOpenDirectory: false,
+  } satisfies SaveResult
+  announceDownloadSuccess(filename, result)
+  return result
+}
+
+export async function openSavedFileLocation(result: Pick<SaveResult, 'directoryPath' | 'filePath'>) {
+  const invoke = getTauriInvoke()
+  const targetPath = result.directoryPath || result.filePath
+
+  if (!invoke || !targetPath) {
+    return false
+  }
+
+  await invoke('open_export_directory', { path: targetPath })
+  return true
 }
 
 export async function saveTextFile(filename: string, content: string, type: string) {

@@ -2,6 +2,7 @@ import { HeadContent, Scripts, createRootRouteWithContext, redirect, isRedirect 
 import { lazy, Suspense } from 'react'
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
+import DownloadSuccessDialog from '../components/DownloadSuccessDialog'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
 import { getCurrentUserFn } from '../lib/api'
@@ -200,6 +201,7 @@ function RootDocument({ children }: { children: ReactNode }) {
         <Header />
         {children}
         <Footer />
+        <DownloadSuccessDialog />
         {TanStackDevtoolsShell ? (
           <Suspense fallback={null}>
             <TanStackDevtoolsShell />
