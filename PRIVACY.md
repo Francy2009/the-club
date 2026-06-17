@@ -77,13 +77,13 @@ Revoca:        Immediata su logout, cambio password, reset admin, scadenza
 | Recupero Password | 15 min | 5 | 30 min |
 
 - Basato su **username normalizzato** (lowercase)
-- In-memory (Map), resettato al riavvio server
-- Per produzione multi-istanza: usare Redis store esterno
+- Persistente su SQLite tramite tabella `RateLimitAttempt`
+- Per produzione multi-istanza: usare uno store condiviso esterno
 
 ### 3.4 Frase di Recupero
 - **Indipendente** dalla password (hash separato, salt separato)
-- Requisiti: ≥3 parole, ≥16 caratteri, conferma identica
-- Normalizzazione: `trim()` + `replace(/\s+/g, ' ')`
+- Requisiti: da 1 a 4 parole, 2-80 caratteri, conferma identica
+- Normalizzazione: `trim()` + `replace(/\s+/g, ' ')` + minuscole
 - Non derivabile da password, non usabile come password
 
 ### 3.5 Token QR Tessere
@@ -99,10 +99,10 @@ Revoca:        Immediata su logout, cambio password, reset admin, scadenza
 | Ambiente | Storage | Controllo Accesso |
 |----------|---------|-------------------|
 | Sviluppo/Server | File SQLite (`prisma/dev.db` o `prod.db`) | Permessi FS host |
-| Desktop Tauri | SQLite in app data dir (`%APPDATA%`/`~/Library`/`~/.local/share`) | Sandbox OS + permessi Tauri |
+| Desktop Tauri | File JSON locale `desktop-db.json` in app data dir (`%APPDATA%`/`~/Library`/`~/.local/share`) | Permessi filesystem utente + comandi Tauri limitati |
 | Docker/Container | Volume persistente mappato | Orchestratore container |
 
-> 🔒 **Responsabilità admin**: Proteggere file database (backup cifrati, filesystem cifrato, accesso SSH limitato).
+> 🔒 **Responsabilità admin**: Proteggere file database e backup (filesystem cifrato, account OS protetto, backup cifrati). Nelle versioni desktop recenti l'eventuale vecchio database in `localStorage` viene migrato automaticamente al file locale dell'app.
 
 ### 4.2 File Esportati (Export/Backup)
 | Tipo | Destinazione Default | Destinazione Personalizzabile | Contenuto Sensibile |

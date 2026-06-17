@@ -1,297 +1,195 @@
 # Gestore Pub
 
-Applicazione open source per club privati: anagrafica soci, tessere QR, rinnovi, presenze, backup e report PDF.
+Gestore Pub è un'applicazione desktop per la gestione di soci, tessere QR,
+presenze, rinnovi, backup e report di un club privato.
 
-## 🎯 Caratteristiche Principali
+È pensata per un utilizzo locale: i dati restano sul computer dell'utente, senza
+telemetria e senza servizi cloud obbligatori.
 
-- **Gestione Soci**: Anagrafica completa con numero tessera, QR code, date iscrizione/scadenza
-- **Presenze**: Check-in tramite QR code con storico giornaliero
-- **Autenticazione Sicura**: Hash PBKDF2-SHA512 (310.000 iterazioni), sessioni HttpOnly/Secure/SameSite
-- **Recupero Password**: Domanda personale + risposta breve hashata per reset senza email
-- **Backup Sicuro**: JSON standard senza hash password/risposta recupero + CSV per consultazione
-- **Export Personalizzabile**: Scegli cartella di destinazione (File System Access API) o Download default
-- **PWA Ready**: Installabile, offline-capable, manifest configurato
-- **Desktop Tauri**: Build nativi Windows/macOS/Linux
-- **Open Source**: Codice verificabile, zero telemetria, zero dipendenze esterne per dati sensibili
+## Chi Sono
 
-## 🔐 Primo Avvio - Configurazione Amministratore
+Sono **Francesco Dell'Orto**, studente del liceo scientifico.
 
-Al **primo avvio assoluto** (database vuoto), l'applicazione:
+Ho sviluppato questo progetto come lavoro personale, con l'obiettivo di
+realizzare un'applicazione concreta, installabile e comprensibile anche da chi
+la usa senza conoscenze tecniche.
 
-1. Crea automaticamente un utente `admin` con password casuale sicura
-2. Reindirizza alla pagina **`/setup`** per la configurazione obbligatoria
-3. Richiede tre campi:
-   - **Username** (min 3 caratteri, univoco)
-   - **Password robusta** (min 8 caratteri, 1 maiuscola, 1 numero, 1 simbolo)
-   - **Domanda personale** e **risposta di recupero** breve, confermata
+## Uso Dell'AI
 
-### Sicurezza della Configurazione Iniziale
+Durante lo sviluppo ho usato strumenti di intelligenza artificiale come supporto
+puntuale, soprattutto per rifinire alcune parti del frontend, rivedere problemi
+di codice e migliorare la documentazione.
 
-- **Nessuna password hardcoded**: L'admin iniziale ha password casuale generata crypto-safe
-- **Hash separati**: Password e risposta di recupero usano salt diversi
-- **Sessioni revocate**: Dopo il setup, tutte le sessioni precedenti vengono invalidate
-- **Open source friendly**: Il codice sorgente non contiene segreti, solo logica di hash
+Il progetto non è stato generato automaticamente: struttura, funzionalità,
+verifiche e scelte finali sono state seguite e adattate manualmente.
 
-### Requisiti Password
+## Cosa Fa
+
+- crea e gestisce i soci del club;
+- genera tessere con QR code;
+- registra le presenze tramite scanner QR;
+- gestisce scadenze e rinnovi annuali;
+- esporta backup, CSV e PDF;
+- permette il recupero password tramite domanda personale;
+- funziona come app desktop per Windows, macOS e Linux.
+
+## Installazione Per Chi Usa L'App
+
+La versione pronta da usare si scarica dalla pagina:
+
+[GitHub Releases](https://github.com/Francy2009/Gestore-pub/releases)
+
+Scegli il file adatto al tuo sistema:
+
+- Windows: installer `.msi` o `.exe`;
+- macOS: file `.dmg`;
+- Linux: `.AppImage`, `.deb` o `.rpm`.
+
+Al primo avvio l'app crea automaticamente il database locale e apre la
+configurazione dell'account amministratore. Non bisogna preparare database,
+server o file a mano.
+
+## Primo Avvio
+
+Quando il database è vuoto, l'app crea un account amministratore iniziale e
+chiede di configurare:
+
+- username;
+- password robusta;
+- domanda personale;
+- risposta di recupero.
+
+La risposta di recupero viene salvata come hash, non in chiaro. Serve nel caso
+in cui l'amministratore dimentichi la password.
+
+## Dove Vengono Salvati I Dati
+
+Nella versione desktop i dati vengono salvati in locale, nella cartella dati
+dell'app, dentro un file chiamato:
+
+```text
+desktop-db.json
 ```
-✓ Almeno 8 caratteri
-✓ Almeno 1 maiuscola (A-Z)
-✓ Almeno 1 numero (0-9)
-✓ Almeno 1 simbolo (!@#$%^&*()_+-=[]{};':"\|,.<>/?)
-```
 
-### Requisiti Recupero Account
-```
-✓ Domanda personale chiara
-✓ Risposta da 1 a 4 parole
-✓ Risposta confermata identica
-✓ La risposta viene normalizzata (spazi multipli → singolo, trim, minuscole)
-```
+Questo file viene creato automaticamente. Se una versione precedente aveva dati
+nel `localStorage` della WebView, la nuova versione li migra automaticamente nel
+file locale dell'app.
 
-> ⚠️ **Importante**: La risposta di recupero è l'**unico modo** per recuperare l'accesso se dimentichi la password. Conservala in un password manager o luogo sicuro. Non è recuperabile dal codice.
+L'app non invia dati a server esterni e non usa analytics.
 
-## 🚀 Avvio In Sviluppo
+## Backup Ed Export
+
+Dalle impostazioni admin si possono esportare backup e file di lavoro.
+
+I file generati finiscono di default nella cartella Download. In alcuni ambienti
+è possibile scegliere una cartella personalizzata.
+
+Attenzione: i backup possono contenere dati personali, token QR e informazioni
+sui soci. Vanno conservati con cura, meglio su un supporto protetto o cifrato.
+Non vanno caricati in chat pubbliche, email non protette o cloud non affidabili.
+
+## Sicurezza
+
+L'app include alcune protezioni pensate per un uso reale locale:
+
+- password salvate con hash PBKDF2-SHA512;
+- risposta di recupero salvata come hash separato;
+- database desktop fuori dal `localStorage` della WebView;
+- Content Security Policy nel bundle Tauri;
+- backup standard senza hash password o hash risposta recupero;
+- protezioni contro CSV formula injection;
+- nessuna telemetria o tracking.
+
+L'app è pensata per essere usata su un computer gestito da una persona fidata.
+Non sostituisce buone pratiche come account del sistema operativo protetti,
+backup sicuri e attenzione nel condividere file o QR code.
+
+Per maggiori dettagli tecnici vedi:
+
+- [PRIVACY.md](PRIVACY.md)
+- [SECURITY_AUDIT_REPORT.md](SECURITY_AUDIT_REPORT.md)
+
+## Sviluppo Locale
+
+Requisiti principali:
+
+- Node.js;
+- npm;
+- Rust e Cargo, solo per compilare l'app desktop Tauri.
+
+Installa le dipendenze:
 
 ```bash
-# Installa dipendenze
 npm install
+```
 
-# Avvia server sviluppo (Vite + TanStack Start)
+Avvia in sviluppo web:
+
+```bash
 npm run dev
 ```
 
-Apri `http://localhost:3000`.
-
-### Comandi Utili
+Build frontend:
 
 ```bash
-# Setup database
-npx prisma migrate deploy # Applica le migrazioni Prisma
-npm run db:seed           # Crea l'admin iniziale di sviluppo
-
-# Build produzione
-npm run build             # Build client + server
-npm run preview           # Anteprima build produzione
-
-# Tauri Desktop
-npm run build:tauri       # Build frontend per Tauri
-cd src-tauri && cargo tauri dev
-cd src-tauri && cargo tauri build
+npm run build
 ```
 
-## 🖥️ Build Desktop Tauri
-
-L'app include configurazione Tauri per build native:
+Build frontend per Tauri:
 
 ```bash
-# Sviluppo desktop (hot reload)
 npm run build:tauri
-cd src-tauri
-cargo tauri dev
+```
 
-# Build installabili
-npm run build:tauri
+Build desktop Tauri:
+
+```bash
 cd src-tauri
 cargo tauri build
 ```
 
-**Output**: `src-tauri/target/release/bundle/`
-- Windows: `.msi`, `.exe`
-- macOS: `.dmg`, `.app`
-- Linux: `.AppImage`, `.deb`, `.rpm`
+Gli installer vengono generati in:
 
-### Sicurezza Tauri
-- CSP restrittiva abilitata nel bundle desktop
-- Nessuna `allowlist` legacy Tauri v1 nella configurazione
-- Gli export usano API browser quando disponibili, senza permessi Tauri aggiuntivi
-
-## 📁 Export, PDF, Backup e Cartella Personalizzata
-
-### Default: Cartella Download
-Per impostazione predefinita, tutti i file generati vanno nella cartella **Download** del browser/sistema.
-
-### Personalizzazione: Scegli Cartella (Impostazioni Admin)
-Nelle **Impostazioni Admin** (`/admin/impostazioni`):
-1. Clicca **"Scegli cartella export"**
-2. Seleziona una cartella (richiede **File System Access API** - Chrome/Edge 86+, Firefox 111+, Safari 15.2+)
-3. L'app richiede permesso di scrittura persistente
-4. Tutti gli export futuri andranno lì
-
-> 📝 **Nota**: Se l'API non è supportata, l'app torna automaticamente al download standard.
-
-### Tipi di Export
-| Tipo | Contenuto | Sensibilità |
-|------|-----------|-------------|
-| **Backup JSON standard** | Soci, ruoli, presenze, domanda recupero e token QR; non include hash password/risposta recupero | 🟡 Media - Dati personali |
-| **CSV Soci** | Anagrafica (no hash, no QR token) | 🟡 Media - Dati personali |
-| **CSV Presenze** | Storico check-in (no hash) | 🟡 Media - Dati personali |
-| **PDF Tessere** | QR code + dati socio | 🟡 Media |
-| **PDF Report** | Report presenze, scadenze | 🟡 Media |
-
-### Sicurezza Backup
-- Il backup JSON standard **non contiene hash password** né **hash risposta recupero**
-- Contiene comunque **token QR** e dati personali dei soci
-- **Conserva backup su supporti protetti** (VeraCrypt, BitLocker, FileVault, LUKS)
-- Non condividere backup in chat, email non cifrate, cloud non protetto
-
-## 🔑 Recupero Accesso Amministratore
-
-### Metodo 1: Frase di Recupero (Consigliato)
-1. Vai a `/login`
-2. Clicca **"Recupera password"**
-3. Inserisci: username + risposta alla domanda personale + nuova password
-4. Accesso ripristinato, sessioni precedenti revocate
-
-### Metodo 2: Reset da Terminale (Emergenza)
-Sulla macchina che ospita il database Prisma:
-
-```bash
-# Password generata casualmente
-npm run db:reset-admin
-
-# Password personalizzata
-ADMIN_RESET_PASSWORD="TuaPassSicura1!" npm run db:reset-admin
+```text
+src-tauri/target/release/bundle/
 ```
 
-Dopo il reset: l'app forza **nuovamente** la configurazione di password, domanda e risposta di recupero (`/setup`).
-
-## 🧪 Test e Qualità
+## Test
 
 ```bash
-# Test automatici
 npm test
+```
 
-# Build completa
+Al momento i test coprono soprattutto il primo avvio desktop, la creazione
+automatica del database locale, la migrazione dal vecchio storage e il reset
+dati dell'app.
+
+## Struttura Del Progetto
+
+```text
+src/          interfaccia, route e logica applicativa
+src/lib/      API, auth, export, storage desktop
+src-tauri/    configurazione e comandi Rust per app desktop
+prisma/       schema e migrazioni per la modalità server/sviluppo
+public/       asset statici
+```
+
+## Note Di Consegna
+
+Questa app è pensata per essere distribuita tramite GitHub Releases come
+applicazione desktop locale.
+
+Prima di pubblicare una nuova versione conviene sempre eseguire:
+
+```bash
+npm test
 npm run build
-
-# Build Tauri
 npm run build:tauri
 ```
 
-> Nota: `npx tsc --noEmit` oggi include anche la cartella di esempio `start-basic`, che non e allineata al route tree principale.
-
-## 📂 Struttura Progetto
-
-```text
-gestore-pub/
-├── src/
-│   ├── components/       # Componenti UI riutilizzabili (Header, Footer, ThemeToggle)
-│   ├── lib/              # Core logic: auth, db, api, export-preferences
-│   │   ├── auth.server.ts      # Hash, sessioni, cookie sicuri
-│   │   ├── db.ts               # Client Prisma singleton
-│   │   ├── api.functions.ts    # Server functions (TanStack Start)
-│   │   ├── export-preferences.ts # File System Access API + IndexedDB
-│   │   └── api.ts              # Client-side API wrappers
-│   ├── routes/           # Pagine (file-based routing TanStack Router)
-│   │   ├── __root.tsx          # Layout radice, auth context, theme
-│   │   ├── setup.tsx           # Configurazione iniziale admin
-│   │   ├── login.tsx           # Login + recupero password
-│   │   ├── index.tsx           # Dashboard utente
-│   │   ├── profile.tsx         # Profilo socio
-│   │   ├── admin/              # Pannello amministrazione
-│   │   │   ├── index.tsx       # Gestione soci
-│   │   │   ├── presenze.tsx    # Check-in QR
-│   │   │   ├── scanner.tsx     # Scanner QR camera
-│   │   │   ├── riepilogo.tsx   # Report presenze
-│   │   │   ├── create.tsx      # Crea socio + PDF tessera
-│   │   │   ├── attendance.tsx  # Storico presenze
-│   │   │   └── impostazioni.tsx # Config admin, export, backup
-│   ├── router.tsx        # Router TanStack + route tree
-│   ├── routeTree.gen.ts  # Generato automaticamente
-│   └── styles.css        # Tailwind + custom CSS
-├── prisma/
-│   ├── schema.prisma     # Modelli DB (Member, Attendance, Session, UserRole)
-│   ├── seed.ts           # Seed sviluppo
-│   ├── reset-admin-password.ts # Script reset admin
-│   └── migrations/       # Migrazioni SQL versionate
-├── src-tauri/            # Configurazione Tauri (Rust)
-│   ├── Cargo.toml
-│   ├── tauri.conf.json
-│   ├── build.rs
-│   └── src/main.rs
-├── public/               # Asset statici (manifest, sw.js, icons)
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── README.md
-├── PRIVACY.md
-├── CHANGELOG.md
-└── LICENSE
-```
-
-## 🛡️ Architettura Sicurezza
-
-### Autenticazione
-- **PBKDF2-SHA512**, 310.000 iterazioni, salt 16 byte, key 64 byte
-- **Sessioni**: Token 32 byte base64url, hash SHA-256 in DB, cookie HttpOnly/Secure/SameSite=Strict
-- **Rate limiting**: Login (8 tentativi/15min → lock 15min), Recovery (5 tentativi/15min → lock 30min)
-- **Timing-safe comparison**: `crypto.timingSafeEqual` per hash
-
-### Frase di Recupero
-- Hash **separato** dalla password (stesso algoritmo, salt diverso)
-- Non derivata dalla password, indipendente
-- Verificata in constant-time
-
-### Protezione Dati
-- **Zero telemetria**: Nessun analytics, tracking, beacon
-- **Zero CDN esterni**: Font, CSS, JS serviti localmente
-- **CSP Ready**: Headers configurabili per produzione
-- **PWA Offline**: Service worker per asset statici
-
-## 📋 Checklist Deploy Produzione
-
-- [ ] `NODE_ENV=production` impostato
-- [ ] Database SQLite su volume persistente (non efemero)
-- [ ] HTTPS obbligatorio (cookie `secure: true`)
-- [ ] Reverse proxy (Nginx/Caddy) con headers sicurezza
-- [ ] Backup automatici database + file export
-- [ ] Monitoraggio spazio disco (backup JSON crescono)
-- [ ] CSP headers: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'`
-- [ ] HSTS, X-Frame-Options, Referrer-Policy configurati
-
-## 🤝 Contribuire
-
-1. Fork repository
-2. Crea branch feature (`git checkout -b feature/nome`)
-3. Commit cambiamenti (`git commit -m 'feat: descrizione'`)
-4. Push branch (`git push origin feature/nome`)
-5. Apri Pull Request
-
-### Convenzioni Commit
-- `feat:` nuova funzionalità
-- `fix:` correzione bug
-- `docs:` documentazione
-- `refactor:` ristrutturazione codice
-- `security:` miglioramenti sicurezza
-- `chore:` manutenzione
-
-## 📄 Licenza
-
-MIT License - Vedi `LICENSE` per dettagli.
-
-## 📞 Supporto
-
-- **Issues**: GitHub Issues per bug/feature request
-- **Security**: Per vulnerabilità, apri issue privato o email maintainer
-- **Documentazione**: Questo README + `PRIVACY.md` + codice sorgente commentato
-
----
-
-**Gestore Pub** - Sviluppato per club privati che vogliono controllo totale sui propri dati.
-
-## Note Di Sicurezza
-
-- L'app e open source: non fare affidamento su segreti nel codice.
-- Password e risposta di recupero devono essere uniche e non ovvie.
-- Chi accede al dispositivo admin o ai backup puo tentare attacchi offline sugli hash.
-- I token QR identificano le tessere: non pubblicare backup o screenshot dei QR.
-- Aggiorna dipendenze e sistema operativo con regolarita.
-- Prima di pubblicare una release, esegui build e test su una copia del database.
-
-## Privacy
-
-Vedi [PRIVACY.md](PRIVACY.md).
+La compilazione nativa Tauri viene verificata dal workflow GitHub Actions sulle
+piattaforme supportate.
 
 ## Licenza
 
-MIT, vedi [LICENSE](LICENSE).
+Il progetto è distribuito con licenza MIT. Vedi [LICENSE](LICENSE).

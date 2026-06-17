@@ -1394,7 +1394,7 @@ export const exportBackupFn = createServerFn({ method: 'GET' })
       application: 'gestore-pub',
       version: 1,
       exported_at: exportedAt,
-      notes: 'Backup standard: contiene anagrafica soci, token QR, ruoli, domanda di recupero e storico presenze. NON contiene hash password né hash risposta di recupero. Per migrazione completa usare exportFullBackupFn (solo admin esperto).',
+      notes: 'Backup standard: contiene anagrafica soci, token QR, ruoli, domanda di recupero e storico presenze. NON contiene hash password né hash risposta di recupero.',
       data: {
         members: members.map((member) => ({
           id: member.id,
@@ -1459,139 +1459,6 @@ export const exportBackupFn = createServerFn({ method: 'GET' })
         member.must_setup,
         member.qr_token ?? '',
         member.has_recovery_answer,
-      ])
-    );
-
-    const attendanceCsv = toCsv(
-      [
-        'id',
-        'member_id',
-        'check_in_day',
-        'check_in_time',
-        'member_first_name',
-        'member_last_name',
-        'member_number',
-        'member_was_deleted',
-      ],
-      backup.data.attendances.map((attendance) => [
-        attendance.id,
-        attendance.member_id ?? '',
-        attendance.check_in_day,
-        attendance.check_in_time,
-        attendance.member_first_name,
-        attendance.member_last_name,
-        attendance.member_number,
-        attendance.member_was_deleted,
-      ])
-    );
-
-    return {
-      exported_at: exportedAt,
-      backup,
-      csv: {
-        members: memberCsv,
-        attendances: attendanceCsv,
-      },
-      counts: {
-        members: members.length,
-        attendances: attendances.length,
-      },
-    };
-  });
-
-// Expert-only: Full backup including password hashes and recovery answer hashes
-// WARNING: Contains sensitive credentials. Encrypt before storing/transferring.
-export const exportFullBackupFn = createServerFn({ method: 'GET' })
-  .handler(async () => {
-    const user = await getAuthenticatedUser();
-    assertReadyAdmin(user);
-
-    const [members, attendances] = await Promise.all([
-      prisma.member.findMany({
-        include: { role: true },
-        orderBy: [
-          { role: { role: 'asc' } },
-          { last_name: 'asc' },
-          { first_name: 'asc' },
-        ],
-      }),
-      prisma.attendance.findMany({
-        orderBy: [
-          { check_in_day: 'asc' },
-          { check_in_time: 'asc' },
-        ],
-      }),
-    ]);
-
-    const exportedAt = new Date().toISOString();
-    const backup = {
-      application: 'gestore-pub',
-      notes: 'BACKUP COMPLETO (ESPERTO): Contiene hash password, hash risposta recupero, token QR. CIFRARE PRIMA DI SALVARE/TRASFERIRE. Uso solo per migrazione server o disaster recovery.',
-      data: {
-        members: members.map((member) => ({
-          id: member.id,
-          first_name: member.first_name,
-          last_name: member.last_name,
-          member_number: member.member_number,
-          qr_token: member.qr_token,
-          username: member.username,
-          password: member.password,
-          recovery_question: member.recovery_question,
-          recovery_phrase_hash: member.recovery_phrase_hash,
-          joined_at: member.joined_at.toISOString(),
-          expiry_date: member.expiry_date?.toISOString() ?? null,
-          password_changed: member.password_changed,
-          must_setup: member.must_setup,
-          role: member.role
-            ? {
-                id: member.role.id,
-                role: member.role.role,
-              }
-            : null,
-        })),
-        attendances: attendances.map((attendance) => ({
-          id: attendance.id,
-          member_id: attendance.member_id,
-          check_in_time: attendance.check_in_time.toISOString(),
-          check_in_day: attendance.check_in_day,
-          member_first_name: attendance.member_first_name,
-          member_last_name: attendance.member_last_name,
-          member_number: attendance.member_number,
-          member_was_deleted: attendance.member_was_deleted,
-        })),
-      },
-    };
-
-    const memberCsv = toCsv(
-      [
-        'id',
-        'role',
-        'first_name',
-        'last_name',
-        'member_number',
-        'username',
-        'recovery_question',
-        'joined_at',
-        'expiry_date',
-        'password_changed',
-        'must_setup',
-        'qr_token',
-        'recovery_answer_set',
-      ],
-      backup.data.members.map((member) => [
-        member.id,
-        member.role?.role ?? '',
-        member.first_name,
-        member.last_name,
-        member.member_number ?? '',
-        member.username,
-        member.recovery_question ?? '',
-        member.joined_at,
-        member.expiry_date ?? '',
-        member.password_changed,
-        member.must_setup,
-        member.qr_token ?? '',
-        Boolean(member.recovery_phrase_hash),
       ])
     );
 
@@ -1729,8 +1596,9 @@ export const restoreBackupFn = createServerFn({ method: 'POST' })
         recovery_phrase_hash: recoveryPhraseHash,
         joined_at: requiredDateString(rawMember, 'joined_at'),
         expiry_date: optionalDateString(rawMember, 'expiry_date') ?? null,
-        password_changed: Boolean(rawMember.password_changed),
-        must_setup: Boolean(rawMember.must_setup),
+        password_changed: isFullBackup ? Boolean(rawMember.password_changed) : false,
+        must_setup: isFullBackup ? Boolean(rawMember.must_setup) : true,
+        credentials_from_backup: isFullBackup,
         role: {
           id: requiredString(role, 'id', 120),
           role: roleValue,
@@ -1834,14 +1702,16 @@ export const restoreBackupFn = createServerFn({ method: 'POST' })
       }
     });
 
-    const currentAdminRestored = memberInputs.some((member) => member.id === user.id && member.role?.role === 'admin');
-    if (currentAdminRestored) {
-      await setSession(user.id);
+    const restoredAdmin = memberInputs.find((member) => member.role?.role === 'admin');
+    const currentAdminRestored = restoredAdmin?.id === user.id;
+    const restoredAdminNeedsSetup = Boolean(restoredAdmin && !restoredAdmin.credentials_from_backup);
+    if (currentAdminRestored || restoredAdminNeedsSetup) {
+      await setSession(restoredAdmin!.id);
     }
 
     return {
       success: true,
-      keptSession: currentAdminRestored,
+      keptSession: Boolean(currentAdminRestored || restoredAdminNeedsSetup),
       restored: {
         members: memberInputs.length,
         attendances: attendanceInputs.length,

@@ -7,6 +7,28 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.16] - 2026-06-17
+
+### Modificato
+- Reset database desktop reso piu sicuro: ora richiede la frase `RESETTA L'APP` prima di cancellare i dati locali.
+- Testi della schermata backup aggiornati per chiarire che l'export standard non contiene hash password o hash recupero.
+
+### Sicurezza
+- Rimossa l'esportazione completa con credenziali dalle API pubbliche e dal bundle client.
+- Restore dei backup standard allineato al flusso di setup admin, evitando account ripristinati con credenziali non note.
+
+## [1.0.15] - 2026-06-17
+
+### Aggiunto
+- Database desktop Tauri salvato automaticamente in un file locale nella cartella dati dell'app.
+- Migrazione automatica dal vecchio database in `localStorage` al nuovo file dati desktop.
+- Test di regressione per migrazione storage desktop e reset database Tauri.
+
+### Modificato
+- Reset app desktop aggiornato per cancellare il file database Tauri senza cancellare preferenze locali non correlate.
+- README, privacy policy e report sicurezza allineati allo storage desktop reale.
+- README riscritto in modo piu chiaro e sobrio, con note sull'autore e sull'uso dell'AI.
+
 ## [1.0.14] - 2026-06-17
 
 ### Aggiunto
@@ -119,7 +141,9 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 - Autenticazione JWT + bcrypt
 - TypeScript strict mode
 
-[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.14...HEAD
+[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.16...HEAD
+[1.0.16]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.15...v1.0.16
+[1.0.15]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.14...v1.0.15
 [1.0.14]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.13...v1.0.14
 [1.0.13]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.12...v1.0.13
 [1.0.12]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.11...v1.0.12

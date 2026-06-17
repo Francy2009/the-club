@@ -104,7 +104,7 @@ function AdminSettings() {
         JSON.stringify(archive.backup, null, 2),
         'application/json;charset=utf-8'
       )
-      setSuccessMsg(`Backup completo salvato ${saved.method === 'folder' ? `in ${saved.directoryName}` : 'in Download'}: ${archive.counts.members} soci e ${archive.counts.attendances} presenze.`)
+      setSuccessMsg(`Backup dati salvato ${saved.method === 'folder' ? `in ${saved.directoryName}` : 'in Download'}: ${archive.counts.members} soci e ${archive.counts.attendances} presenze.`)
     } catch (error: any) {
       setErrorMsg(error?.message || 'Errore durante la creazione del backup.')
     } finally {
@@ -475,7 +475,7 @@ function AdminSettings() {
                 </div>
                 <div className="min-w-0">
                   <h2 className="display-title m-0 text-xl font-bold tracking-tight text-[var(--sea-ink)]">
-                    Backup completo
+                    Backup dati
                   </h2>
                   <p className="mt-1 text-xs font-semibold leading-relaxed text-[var(--sea-ink-soft)]">
                     Il file JSON e il formato giusto per ripristinare l'app. I CSV servono per consultazione o archiviazione esterna.

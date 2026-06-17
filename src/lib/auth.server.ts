@@ -40,7 +40,7 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   if (modernParts.length === 4 && modernParts[0] === PASSWORD_HASH_VERSION) {
     const [, iterationsValue, salt, hash] = modernParts;
     const iterations = Number(iterationsValue);
-    if (!Number.isInteger(iterations) || iterations <= 0 || !salt || !hash) return false;
+    if (!Number.isInteger(iterations) || iterations <= 0 || iterations > 1000000 || !salt || !hash) return false;
 
     const verifyHash = crypto
       .pbkdf2Sync(password, salt, iterations, PASSWORD_HASH_KEY_LENGTH, 'sha512')

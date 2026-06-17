@@ -40,6 +40,66 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]
 const DEFAULT_RECOVERY_QUESTION = 'Qual e la tua risposta di recupero?'
 
 type FnArgs = { data?: Record<string, unknown> } | undefined
+type TauriInvoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
+type StoredDbSource = 'tauri-file' | 'legacy-localStorage' | 'localStorage' | 'empty'
+
+function getTauriInvoke(): TauriInvoke | null {
+  if (typeof window === 'undefined') return null
+
+  return (window as typeof window & {
+    __TAURI__?: {
+      core?: {
+        invoke?: TauriInvoke
+      }
+    }
+  }).__TAURI__?.core?.invoke ?? null
+}
+
+async function readStoredDbRaw(): Promise<{ raw: string | null; source: StoredDbSource }> {
+  const invoke = getTauriInvoke()
+
+  if (invoke) {
+    const raw = await invoke<string | null>('read_desktop_db')
+    if (raw) return { raw, source: 'tauri-file' }
+
+    return {
+      raw: localStorage.getItem(DB_KEY),
+      source: localStorage.getItem(DB_KEY) ? 'legacy-localStorage' : 'empty',
+    }
+  }
+
+  return {
+    raw: localStorage.getItem(DB_KEY),
+    source: localStorage.getItem(DB_KEY) ? 'localStorage' : 'empty',
+  }
+}
+
+async function persistDb(db: DesktopDb) {
+  const raw = JSON.stringify(db)
+  const invoke = getTauriInvoke()
+
+  if (invoke) {
+    await invoke('write_desktop_db', { contents: raw })
+    return
+  }
+
+  localStorage.setItem(DB_KEY, raw)
+}
+
+async function migrateLegacyLocalDb(db: DesktopDb) {
+  await persistDb(db)
+  localStorage.removeItem(DB_KEY)
+}
+
+export async function resetDesktopDatabase() {
+  const invoke = getTauriInvoke()
+
+  if (invoke) {
+    await invoke('reset_desktop_db')
+  }
+
+  localStorage.removeItem(DB_KEY)
+}
 
 function getData(args?: FnArgs) {
   return args?.data ?? {}
@@ -98,36 +158,39 @@ function toHex(buffer: ArrayBuffer) {
   return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  return result === 0
+}
+
 async function digestPassword(password: string, salt = randomToken()) {
-  if (crypto.subtle) {
-    const pbkdf2Salt = /^[a-f0-9]{32}$/i.test(salt) ? salt : randomHex()
-    const key = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode(password),
-      'PBKDF2',
-      false,
-      ['deriveBits'],
-    )
-    const bits = await crypto.subtle.deriveBits(
-      {
-        name: 'PBKDF2',
-        salt: new TextEncoder().encode(pbkdf2Salt),
-        iterations: 310000,
-        hash: 'SHA-512',
-      },
-      key,
-      512,
-    )
-    return `pbkdf2_sha512$310000$${pbkdf2Salt}$${toHex(bits)}`
-  }
-
   if (!crypto.subtle) {
-    return `local$${salt}$${btoa(`${salt}:${password}`)}`
+    throw new Error('Le API crittografiche Web Crypto non sono supportate in questo ambiente.')
   }
 
-  const encoded = new TextEncoder().encode(`${salt}:${password}`)
-  const hash = await crypto.subtle.digest('SHA-256', encoded)
-  return `sha256$${salt}$${toHex(hash)}`
+  const pbkdf2Salt = /^[a-f0-9]{32}$/i.test(salt) ? salt : randomHex()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits'],
+  )
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: new TextEncoder().encode(pbkdf2Salt),
+      iterations: 310000,
+      hash: 'SHA-512',
+    },
+    key,
+    512,
+  )
+  return `pbkdf2_sha512$310000$${pbkdf2Salt}$${toHex(bits)}`
 }
 
 async function verifyPbkdf2Password(password: string, iterations: number, salt: string, expectedHash: string) {
@@ -149,14 +212,14 @@ async function verifyPbkdf2Password(password: string, iterations: number, salt: 
     key,
     512,
   )
-  return toHex(bits) === expectedHash.toLowerCase()
+  return timingSafeEqual(toHex(bits), expectedHash.toLowerCase())
 }
 
 async function verifyPassword(password: string, storedHash: string) {
   if (storedHash.startsWith('pbkdf2_sha512$')) {
     const [, iterationsValue, salt, hash] = storedHash.split('$')
     const iterations = Number(iterationsValue)
-    return Number.isInteger(iterations) && iterations > 0 && Boolean(salt) && Boolean(hash)
+    return Number.isInteger(iterations) && iterations > 0 && iterations <= 1000000 && Boolean(salt) && Boolean(hash)
       ? verifyPbkdf2Password(password, iterations, salt, hash)
       : false
   }
@@ -172,12 +235,12 @@ async function verifyPassword(password: string, storedHash: string) {
     if (!crypto.subtle) return false
     const encoded = new TextEncoder().encode(`${salt}:${password}`)
     const currentHash = await crypto.subtle.digest('SHA-256', encoded)
-    return toHex(currentHash) === hash.toLowerCase()
+    return timingSafeEqual(toHex(currentHash), hash.toLowerCase())
   }
   if (kind === 'local') {
-    return btoa(`${salt}:${password}`) === hash
+    return timingSafeEqual(btoa(`${salt}:${password}`), hash)
   }
-  return await digestPassword(password, salt) === storedHash
+  return timingSafeEqual(await digestPassword(password, salt), storedHash)
 }
 
 function parseDb(raw: string | null): DesktopDb | null {
@@ -227,10 +290,20 @@ async function createInitialDb(): Promise<DesktopDb> {
 }
 
 async function loadDb() {
-  let db = parseDb(localStorage.getItem(DB_KEY))
+  const stored = await readStoredDbRaw()
+  let db = parseDb(stored.raw)
+
+  if (stored.raw && !db && stored.source === 'tauri-file') {
+    throw new Error('Database locale non valido. Ripristina un backup oppure usa il reset app se vuoi ripartire da zero.')
+  }
+
+  if (db && stored.source === 'legacy-localStorage') {
+    await migrateLegacyLocalDb(db)
+  }
+
   if (!db || !db.members.some((member) => member.role === 'admin')) {
     db = await createInitialDb()
-    saveDb(db)
+    await saveDb(db)
     return db
   }
 
@@ -244,14 +317,14 @@ async function loadDb() {
     (bootstrapAdmin.must_setup || !bootstrapAdmin.password_changed || !bootstrapAdmin.recovery_question || !bootstrapAdmin.recovery_phrase_hash)
   ) {
     db.current_user_id = bootstrapAdmin.id
-    saveDb(db)
+    await saveDb(db)
   }
 
   return db
 }
 
-function saveDb(db: DesktopDb) {
-  localStorage.setItem(DB_KEY, JSON.stringify(db))
+async function saveDb(db: DesktopDb) {
+  await persistDb(db)
 }
 
 function getLocalDateKey(date = new Date()) {
@@ -306,7 +379,6 @@ function getCurrentMember(db: DesktopDb) {
   const member = db.members.find((member) => member.id === db.current_user_id) ?? null
   if (!member) {
     db.current_user_id = null
-    saveDb(db)
   }
   return member
 }
@@ -378,7 +450,7 @@ export async function loginFn(args?: FnArgs) {
   }
 
   db.current_user_id = member.id
-  saveDb(db)
+  await saveDb(db)
 
   return {
     success: true,
@@ -389,7 +461,7 @@ export async function loginFn(args?: FnArgs) {
 export async function logoutFn() {
   const db = await loadDb()
   db.current_user_id = null
-  saveDb(db)
+  await saveDb(db)
   return { success: true }
 }
 
@@ -425,7 +497,7 @@ export async function setupValidator(args?: FnArgs) {
   user.recovery_phrase_hash = await digestPassword(normalizeRecoveryAnswer(recoveryAnswer))
   user.password_changed = true
   user.must_setup = false
-  saveDb(db)
+  await saveDb(db)
   return { success: true }
 }
 
@@ -448,7 +520,7 @@ export async function changeAdminPasswordFn(args?: FnArgs) {
   admin.password_hash = await digestPassword(newPassword)
   admin.password_changed = true
   admin.must_setup = false
-  saveDb(db)
+  await saveDb(db)
   return { success: true }
 }
 
@@ -469,7 +541,7 @@ export async function changeAdminRecoveryPhraseFn(args?: FnArgs) {
   assertRecoveryAnswer(recoveryAnswer)
   admin.recovery_question = normalizeRecoveryQuestion(recoveryQuestion)
   admin.recovery_phrase_hash = await digestPassword(normalizeRecoveryAnswer(recoveryAnswer))
-  saveDb(db)
+  await saveDb(db)
   return { success: true }
 }
 
@@ -517,7 +589,7 @@ export async function recoverPasswordFn(args?: FnArgs) {
   member.password_changed = true
   member.must_setup = false
   db.current_user_id = member.id
-  saveDb(db)
+  await saveDb(db)
   return { success: true }
 }
 
@@ -593,7 +665,7 @@ export async function createMemberFn(args?: FnArgs) {
   }
 
   db.members.push(member)
-  saveDb(db)
+  await saveDb(db)
 
   return {
     success: true,
@@ -624,7 +696,7 @@ export async function renewMembershipFn(args?: FnArgs) {
   const startDate = startDateValue ? new Date(startDateValue) : new Date()
   member.joined_at = startDate.toISOString()
   member.expiry_date = addMembershipYear(startDate).toISOString()
-  saveDb(db)
+  await saveDb(db)
   return { success: true }
 }
 
@@ -640,7 +712,7 @@ export async function deleteMemberFn(args?: FnArgs) {
     attendance.member_id === memberId ? { ...attendance, member_was_deleted: true } : attendance
   ))
   db.members = db.members.filter((member) => member.id !== memberId)
-  saveDb(db)
+  await saveDb(db)
   return { success: true }
 }
 
@@ -686,7 +758,7 @@ export async function registerAttendanceFn(args?: FnArgs) {
     member_number: member.member_number,
     member_was_deleted: false,
   })
-  saveDb(db)
+  await saveDb(db)
   return { success: true, alreadyCheckedIn: false, member: memberResult }
 }
 
@@ -812,7 +884,7 @@ export async function deleteAttendanceFn(args?: FnArgs) {
   assertReadyAdmin(db)
   const attendanceId = requiredString(data, 'attendance_id', 120)
   db.attendances = db.attendances.filter((attendance) => attendance.id !== attendanceId)
-  saveDb(db)
+  await saveDb(db)
   return { success: true }
 }
 
@@ -827,13 +899,12 @@ export async function exportBackupFn() {
     member_number: member.member_number,
     qr_token: member.qr_token,
     username: member.username,
-    password: member.password_hash,
     recovery_question: member.recovery_question,
-    recovery_phrase_hash: member.recovery_phrase_hash,
     joined_at: member.joined_at,
     expiry_date: member.expiry_date,
     password_changed: member.password_changed,
     must_setup: member.must_setup,
+    has_recovery_answer: Boolean(member.recovery_phrase_hash),
     role: {
       id: `role-${member.id}`,
       role: member.role,
@@ -843,7 +914,7 @@ export async function exportBackupFn() {
     application: 'gestore-pub',
     version: 1,
     exported_at: exportedAt,
-    notes: 'Backup completo: contiene hash password, hash risposta recupero, domanda recupero, token QR, soci, ruoli e storico presenze. Conservare in modo privato.',
+    notes: 'Backup standard: contiene anagrafica soci, token QR, ruoli, domanda di recupero e storico presenze. NON contiene hash password né hash risposta di recupero.',
     data: {
       members,
       attendances: db.attendances,
@@ -855,7 +926,7 @@ export async function exportBackupFn() {
     backup,
     csv: {
       members: toCsv(
-        ['id', 'role', 'first_name', 'last_name', 'member_number', 'username', 'recovery_question', 'joined_at', 'expiry_date', 'password_changed', 'must_setup', 'qr_token', 'recovery_answer_set'],
+        ['id', 'role', 'first_name', 'last_name', 'member_number', 'username', 'recovery_question', 'joined_at', 'expiry_date', 'password_changed', 'must_setup', 'qr_token', 'has_recovery_answer'],
         members.map((member) => [
           member.id,
           member.role.role,
@@ -869,7 +940,7 @@ export async function exportBackupFn() {
           member.password_changed,
           member.must_setup,
           member.qr_token ?? '',
-          Boolean(member.recovery_phrase_hash),
+          member.has_recovery_answer,
         ]),
       ),
       attendances: toCsv(
@@ -893,6 +964,37 @@ export async function exportBackupFn() {
   }
 }
 
+function assertPasswordHash(value: string) {
+  const modern = value.match(/^pbkdf2_sha512\$(\d+)\$([a-f0-9]{32,128})\$([a-f0-9]{128})$/i)
+  if (modern) {
+    const iterations = Number(modern[1])
+    if (Number.isInteger(iterations) && iterations >= 100000 && iterations <= 1000000) {
+      return
+    }
+  }
+
+  const legacy = value.match(/^[a-f0-9]{16,128}:[a-f0-9]{128}$/i)
+  if (legacy) return
+
+  const sha256 = value.match(/^sha256\$[a-zA-Z0-9_-]+\$[a-f0-9]{64}$/i)
+  if (sha256) return
+
+  const local = value.match(/^local\$[a-zA-Z0-9_-]+\$[a-zA-Z0-9+/=]+$/i)
+  if (local) return
+
+  throw new Error('Backup non valido: hash password non riconosciuto o non sicuro')
+}
+
+function assertUniqueValues(values: string[], label: string) {
+  const seen = new Set<string>()
+  for (const value of values) {
+    if (seen.has(value)) {
+      throw new Error(`Backup non valido: valore duplicato in ${label}`)
+    }
+    seen.add(value)
+  }
+}
+
 export async function restoreBackupFn(args?: FnArgs) {
   const data = getData(args)
   assertRecord(data)
@@ -911,51 +1013,109 @@ export async function restoreBackupFn(args?: FnArgs) {
     throw new Error('Backup non compatibile con questa applicazione')
   }
 
-  const restored: DesktopDb = {
-    version: 1,
-    current_user_id: null,
-    members: parsed.data.members.map((member: any) => ({
+  const restoredMembersWithFlags = await Promise.all(parsed.data.members.map(async (member: any) => {
+    const roleValue = member.role?.role === 'admin' ? 'admin' : 'user'
+    const hasPassword = typeof member.password === 'string' && member.password.length > 0
+    const hasRecoveryHash = typeof member.recovery_phrase_hash === 'string' && member.recovery_phrase_hash.length > 0
+    const isFullBackup = hasPassword || hasRecoveryHash
+
+    let passwordHash: string
+    let recoveryPhraseHash: string | null = null
+
+    if (isFullBackup) {
+      passwordHash = requiredString(member, 'password', 500)
+      assertPasswordHash(passwordHash)
+      const rph = nullableString(member, 'recovery_phrase_hash', 500)
+      if (rph) {
+        assertPasswordHash(rph)
+        recoveryPhraseHash = rph
+      }
+    } else {
+      const tempPassword = randomToken().slice(0, 16) + 'Aa1!'
+      passwordHash = await digestPassword(tempPassword)
+    }
+
+    return {
       id: requiredString(member, 'id', 120),
       first_name: requiredString(member, 'first_name', 80),
       last_name: requiredString(member, 'last_name', 80),
       member_number: nullableString(member, 'member_number', 80),
       qr_token: nullableString(member, 'qr_token', 120),
       username: requiredString(member, 'username', 80).toLowerCase(),
-      password_hash: requiredString(member, 'password', 500),
+      password_hash: passwordHash,
       recovery_question: nullableString(member, 'recovery_question', 120),
-      recovery_phrase_hash: nullableString(member, 'recovery_phrase_hash', 500),
+      recovery_phrase_hash: recoveryPhraseHash,
       joined_at: requiredString(member, 'joined_at', 80),
       expiry_date: nullableString(member, 'expiry_date', 80),
-      password_changed: Boolean(member.password_changed),
-      must_setup: Boolean(member.must_setup),
-      role: member.role?.role === 'admin' ? 'admin' : 'user',
-    })),
-    attendances: parsed.data.attendances.map((attendance: any) => ({
+      password_changed: isFullBackup ? Boolean(member.password_changed) : false,
+      must_setup: isFullBackup ? Boolean(member.must_setup) : true,
+      role: roleValue as 'admin' | 'user',
+      credentials_from_backup: isFullBackup,
+    }
+  }))
+  const restoredMembers: DesktopMember[] = restoredMembersWithFlags.map(({ credentials_from_backup: _credentialsFromBackup, ...member }) => member)
+
+  assertUniqueValues(restoredMembers.map((m) => m.id), 'id soci')
+  assertUniqueValues(restoredMembers.map((m) => m.username), 'username soci')
+  assertUniqueValues(
+    restoredMembers.map((m) => m.member_number).filter((v): v is string => Boolean(v)),
+    'numeri tessera'
+  )
+  assertUniqueValues(
+    restoredMembers.map((m) => m.qr_token).filter((v): v is string => Boolean(v)),
+    'token QR'
+  )
+
+  const adminCount = restoredMembers.filter((m) => m.role === 'admin').length
+  if (adminCount !== 1) {
+    throw new Error('Il backup deve contenere esattamente un account amministratore')
+  }
+
+  const memberIds = new Set(restoredMembers.map((m) => m.id))
+  const restoredAttendances = parsed.data.attendances.map((attendance: any) => {
+    const memberId = typeof attendance.member_id === 'string' && memberIds.has(attendance.member_id)
+      ? attendance.member_id
+      : null
+
+    return {
       id: requiredString(attendance, 'id', 120),
-      member_id: nullableString(attendance, 'member_id', 120),
+      member_id: memberId,
       check_in_time: requiredString(attendance, 'check_in_time', 80),
       check_in_day: requiredString(attendance, 'check_in_day', 20),
       member_first_name: requiredString(attendance, 'member_first_name', 80),
       member_last_name: requiredString(attendance, 'member_last_name', 80),
       member_number: requiredString(attendance, 'member_number', 80),
-      member_was_deleted: Boolean(attendance.member_was_deleted),
-    })),
+      member_was_deleted: Boolean(attendance.member_was_deleted) || !memberId,
+    }
+  })
+
+  assertUniqueValues(restoredAttendances.map((a) => a.id), 'id presenze')
+  assertUniqueValues(
+    restoredAttendances
+      .filter((a) => a.member_id)
+      .map((a) => `${a.member_id}:${a.check_in_day}`),
+    'presenze giornaliere'
+  )
+
+  const restoredDb: DesktopDb = {
+    version: 1,
+    current_user_id: null,
+    members: restoredMembers,
+    attendances: restoredAttendances,
   }
 
-  if (restored.members.filter((member) => member.role === 'admin').length !== 1) {
-    throw new Error('Il backup deve contenere esattamente un account amministratore')
-  }
-
-  const currentAdminRestored = restored.members.some((member) => member.id === user.id && member.role === 'admin')
-  restored.current_user_id = currentAdminRestored ? user.id : null
-  saveDb(restored)
+  const restoredAdmin = restoredMembersWithFlags.find((member) => member.role === 'admin')
+  const currentAdminRestored = restoredAdmin?.id === user.id
+  const restoredAdminNeedsSetup = Boolean(restoredAdmin && !restoredAdmin.credentials_from_backup)
+  restoredDb.current_user_id = currentAdminRestored || restoredAdminNeedsSetup ? restoredAdmin?.id ?? null : null
+  await saveDb(restoredDb)
 
   return {
     success: true,
-    keptSession: currentAdminRestored,
+    keptSession: Boolean(restoredDb.current_user_id),
     restored: {
-      members: restored.members.length,
-      attendances: restored.attendances.length,
+      members: restoredDb.members.length,
+      attendances: restoredDb.attendances.length,
     },
   }
 }

@@ -7,6 +7,11 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
+use tauri::{AppHandle, Manager};
+
+const DESKTOP_DB_FILENAME: &str = "desktop-db.json";
+const DESKTOP_DB_TMP_FILENAME: &str = "desktop-db.json.tmp";
+const MAX_DESKTOP_DB_BYTES: usize = 50 * 1024 * 1024;
 
 #[tauri::command]
 fn save_export_file(filename: String, bytes: Vec<u8>) -> Result<Vec<String>, String> {
@@ -51,6 +56,61 @@ fn open_export_directory(path: String) -> Result<(), String> {
     }
 
     open_directory(&directory)
+}
+
+#[tauri::command]
+fn read_desktop_db(app: AppHandle) -> Result<Option<String>, String> {
+    let db_path = desktop_db_path(&app)?;
+
+    match fs::read_to_string(&db_path) {
+        Ok(contents) => Ok(Some(contents)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(format!("Impossibile leggere il database locale: {error}")),
+    }
+}
+
+#[tauri::command]
+fn write_desktop_db(app: AppHandle, contents: String) -> Result<(), String> {
+    if contents.len() > MAX_DESKTOP_DB_BYTES {
+        return Err("Database locale troppo grande.".to_string());
+    }
+
+    let db_path = desktop_db_path(&app)?;
+    let tmp_path = db_path.with_file_name(DESKTOP_DB_TMP_FILENAME);
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&tmp_path)
+        .map_err(|error| format!("Impossibile preparare il database locale: {error}"))?;
+
+    file.write_all(contents.as_bytes())
+        .map_err(|error| format!("Impossibile scrivere il database locale: {error}"))?;
+    file.sync_all()
+        .map_err(|error| format!("Impossibile completare il salvataggio del database locale: {error}"))?;
+    drop(file);
+
+    if let Err(rename_error) = fs::rename(&tmp_path, &db_path) {
+        if db_path.exists() {
+            fs::remove_file(&db_path)
+                .map_err(|error| format!("Impossibile aggiornare il database locale: {error}"))?;
+        }
+        fs::rename(&tmp_path, &db_path)
+            .map_err(|error| format!("Impossibile aggiornare il database locale: {rename_error}; {error}"))?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn reset_desktop_db(app: AppHandle) -> Result<(), String> {
+    let db_path = desktop_db_path(&app)?;
+    let tmp_path = db_path.with_file_name(DESKTOP_DB_TMP_FILENAME);
+
+    remove_file_if_exists(&db_path)?;
+    remove_file_if_exists(&tmp_path)?;
+
+    Ok(())
 }
 
 fn sanitize_filename(filename: &str) -> String {
@@ -134,6 +194,26 @@ fn downloads_dir() -> Option<PathBuf> {
     }
 }
 
+fn desktop_db_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("Impossibile trovare la cartella dati dell'app: {error}"))?;
+
+    fs::create_dir_all(&app_data_dir)
+        .map_err(|error| format!("Impossibile creare la cartella dati dell'app: {error}"))?;
+
+    Ok(app_data_dir.join(DESKTOP_DB_FILENAME))
+}
+
+fn remove_file_if_exists(path: &Path) -> Result<(), String> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!("Impossibile cancellare il database locale: {error}")),
+    }
+}
+
 #[cfg(target_os = "linux")]
 fn linux_xdg_download_dir() -> Option<PathBuf> {
     let home = std::env::var("HOME").ok()?;
@@ -185,7 +265,13 @@ fn main() {
     }
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![save_export_file, open_export_directory])
+        .invoke_handler(tauri::generate_handler![
+            save_export_file,
+            open_export_directory,
+            read_desktop_db,
+            write_desktop_db,
+            reset_desktop_db,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

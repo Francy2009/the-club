@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate, useRouteContext, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Shield, User, QrCode, ClipboardList, PlusCircle, LogIn, Calendar, CheckCircle, CalendarCheck, RotateCcw, ShieldAlert } from 'lucide-react'
+import { resetDesktopDatabase } from '../lib/desktop-api'
+import { resetExportDirectory } from '../lib/export-preferences'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -13,16 +15,25 @@ function App() {
   const router = useRouter()
   const navigate = useNavigate()
   const [confirmingReset, setConfirmingReset] = useState(false)
+  const [resetConfirmationText, setResetConfirmationText] = useState('')
   const [resetting, setResetting] = useState(false)
+  const resetConfirmationRequired = "RESETTA L'APP"
+  const canResetDesktopData = resetConfirmationText.trim().toUpperCase() === resetConfirmationRequired
 
   const resetDesktopData = async () => {
-    if (!isTauriMode || resetting) return
+    if (!isTauriMode || resetting || !canResetDesktopData) return
 
     setResetting(true)
-    localStorage.clear()
-    await router.invalidate()
-    navigate({ to: '/setup', replace: true })
-    setResetting(false)
+    try {
+      await resetDesktopDatabase()
+      await resetExportDirectory()
+      setResetConfirmationText('')
+      setConfirmingReset(false)
+      await router.invalidate()
+      navigate({ to: '/setup', replace: true })
+    } finally {
+      setResetting(false)
+    }
   }
 
   // Calculate membership status if user is logged in
@@ -289,24 +300,39 @@ function App() {
                 </div>
               </div>
               {confirmingReset ? (
-                <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingReset(false)}
-                    disabled={resetting}
-                    className="mobile-action inline-flex items-center justify-center rounded-xl border border-[var(--line)] bg-white/40 px-4 py-3 text-sm font-bold text-[var(--sea-ink)] transition hover:-translate-y-0.5 hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-60 sm:rounded-full"
-                  >
-                    Annulla
-                  </button>
-                  <button
-                    type="button"
-                    onClick={resetDesktopData}
-                    disabled={resetting}
-                    className="mobile-action inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-500 transition hover:-translate-y-0.5 hover:bg-red-500/18 disabled:cursor-not-allowed disabled:opacity-60 sm:rounded-full"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    {resetting ? 'Ripristino...' : 'Conferma reset'}
-                  </button>
+                <div className="grid w-full gap-3 sm:w-auto sm:min-w-[22rem]">
+                  <label className="grid gap-1.5 text-xs font-bold text-[var(--sea-ink)]">
+                    Scrivi RESETTA L'APP per cancellare i dati
+                    <input
+                      value={resetConfirmationText}
+                      onChange={(event) => setResetConfirmationText(event.target.value)}
+                      disabled={resetting}
+                      placeholder="RESETTA L'APP"
+                      className="rounded-xl border border-red-500/25 bg-white/70 px-3 py-2.5 text-sm font-semibold text-[var(--sea-ink)] outline-none transition focus:border-red-500/60 focus:ring-2 focus:ring-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResetConfirmationText('')
+                        setConfirmingReset(false)
+                      }}
+                      disabled={resetting}
+                      className="mobile-action inline-flex items-center justify-center rounded-xl border border-[var(--line)] bg-white/40 px-4 py-3 text-sm font-bold text-[var(--sea-ink)] transition hover:-translate-y-0.5 hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-60 sm:rounded-full"
+                    >
+                      Annulla
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetDesktopData}
+                      disabled={resetting || !canResetDesktopData}
+                      className="mobile-action inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-500 transition hover:-translate-y-0.5 hover:bg-red-500/18 disabled:cursor-not-allowed disabled:opacity-60 sm:rounded-full"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      {resetting ? 'Ripristino...' : 'Conferma reset'}
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <button
@@ -321,7 +347,7 @@ function App() {
             </div>
             {confirmingReset ? (
               <p className="m-0 mt-4 rounded-xl border border-red-500/15 bg-red-500/8 px-3 py-2 text-xs font-semibold leading-5 text-red-500">
-                Verranno cancellati soci, presenze, account e preferenze salvati nel localStorage di questa app.
+                Verranno cancellati soci, presenze, account e preferenze export salvati da questa app.
               </p>
             ) : null}
           </div>
