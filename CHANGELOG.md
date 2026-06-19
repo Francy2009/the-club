@@ -7,7 +7,7 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
-## [1.0.17] - 2026-06-19
+## [1.0.18] - 2026-06-19
 
 ### Aggiunto
 - CI su pull request e push con audit npm, typecheck, test e build.
@@ -25,6 +25,12 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 - Limiti dimensione e validazione aggiunti per database/export Tauri.
 - Apertura cartella export Tauri vincolata alla cartella Download dopo canonicalizzazione del percorso.
 - File locali sensibili, database, backup ed export esclusi dal tracking Git.
+- Bundle desktop reso self-contained rimuovendo il caricamento runtime di font remoti.
+
+## [1.0.17] - 2026-06-18
+
+### Modificato
+- Preparazione della versione desktop 1.0.17 con aggiornamento metadati Tauri.
 
 ## [1.0.16] - 2026-06-17
 
@@ -160,7 +166,9 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 - Autenticazione JWT + bcrypt
 - TypeScript strict mode
 
-[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.16...HEAD
+[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.18...HEAD
+[1.0.18]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.17...v1.0.18
+[1.0.17]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.16...v1.0.17
 [1.0.16]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.15...v1.0.16
 [1.0.15]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.14...v1.0.15
 [1.0.14]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.13...v1.0.14

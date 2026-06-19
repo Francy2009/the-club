@@ -1,7 +1,7 @@
 # Security Audit Report - Gestore Pub
 
 **Data Analisi:** 2026-06-19
-**Versione Applicazione:** 1.0.17
+**Versione Applicazione:** 1.0.18
 **Tipologia:** Applicazione locale per gestione soci e presenze (Club Privato)  
 **Stack Tecnologico:** React 19, TanStack Start, Prisma ORM, SQLite, Tauri 2 (Desktop)  
 **Ambiente:** Single-page application con backend integrato (Server Functions), deployabile come web app o app desktop Tauri
