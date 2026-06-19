@@ -930,7 +930,7 @@ export async function exportBackupFn() {
     application: 'gestore-pub',
     version: 1,
     exported_at: exportedAt,
-    notes: 'Backup standard: contiene anagrafica soci, token QR, ruoli, domanda di recupero e storico presenze. NON contiene hash password né hash risposta di recupero.',
+    notes: 'Backup standard: contiene anagrafica soci, token QR, ruoli, dati recupero non segreti e storico presenze. NON contiene hash password né hash risposta di recupero.',
     data: {
       members,
       attendances: db.attendances,

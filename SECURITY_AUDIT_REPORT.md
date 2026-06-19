@@ -1,12 +1,12 @@
 # Security Audit Report - Gestore Pub
 
-**Data Analisi:** 2026-06-18
+**Data Analisi:** 2026-06-19
 **Versione Applicazione:** 1.0.17
 **Tipologia:** Applicazione locale per gestione soci e presenze (Club Privato)  
 **Stack Tecnologico:** React 19, TanStack Start, Prisma ORM, SQLite, Tauri 2 (Desktop)  
 **Ambiente:** Single-page application con backend integrato (Server Functions), deployabile come web app o app desktop Tauri
 
-**Stato mitigazioni (2026-06-18):** le vulnerabilità principali sono state indirizzate nel codice:
+**Stato mitigazioni (2026-06-19):** le vulnerabilità principali sono state indirizzate nel codice:
 - rate limiting login/recupero persistente su SQLite tramite `RateLimitAttempt`;
 - protezione CSRF globale per richieste non-GET con controllo `Origin`/`Sec-Fetch-Site`;
 - backup standard senza hash password/frase recupero; l'esportazione completa con credenziali è stata rimossa dalle API pubbliche;
@@ -14,7 +14,9 @@
 - CSP Tauri abilitata;
 - database desktop Tauri spostato da `localStorage` WebView a file locale `desktop-db.json` nella cartella dati dell'app, con migrazione automatica dal vecchio storage;
 - DevTools limitati alla modalità `serve`;
-- rotazione sessioni su login, cambio password e cambio frase recupero.
+- rotazione sessioni su login, cambio password e cambio frase recupero;
+- build desktop self-contained senza import runtime di font remoti;
+- ultimo controllo locale: `npm audit --audit-level=moderate`, typecheck, test, build web e build Tauri/prerender completati con esito positivo.
 
 ---
 
@@ -394,7 +396,7 @@ In Tauri v2 non usare esempi `allowlist` v1: il controllo principale resta sui c
 npm audit --audit-level=high --omit=dev
 npx @cyclonedx/bom . --output sbom.xml
 # Verificare: @tanstack/devtools-vite SOLO in devDependencies ✅
-# Verificare: Nessuna dipendenza con CVE noto (al 2025-06-15: tutte OK)
+# Verificare: `npm audit --audit-level=moderate` pulito al 2026-06-19
 ```
 
 **Dipendenze da monitorare:**
@@ -459,7 +461,7 @@ describe('Security: Backup', () => {
 - [ ] Headers sicurezza (HSTS, X-Frame-Options, etc.) configurati
 - [ ] Audit logging per azioni admin
 - [ ] Code signing certificati Tauri configurati
-- [ ] `npm audit` clean in CI
+- [x] `npm audit --audit-level=moderate` pulito localmente e integrato in CI
 - [ ] Test sicurezza (rate limit, auth bypass, backup restore) in CI
 
 ---
