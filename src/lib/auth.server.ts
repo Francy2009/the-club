@@ -9,6 +9,9 @@ const PASSWORD_HASH_VERSION = 'pbkdf2_sha512';
 const PASSWORD_HASH_ITERATIONS = 310000;
 const PASSWORD_HASH_KEY_LENGTH = 64;
 const LEGACY_PASSWORD_HASH_ITERATIONS = 1000;
+// Recovery question uses same hashing as password but with different version prefix
+const RECOVERY_QUESTION_HASH_VERSION = 'recovery_q_sha512';
+const RECOVERY_QUESTION_HASH_ITERATIONS = 100000;
 
 function timingSafeEqualHex(a: string, b: string): boolean {
   const aBuffer = Buffer.from(a, 'hex');
@@ -57,6 +60,35 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   return timingSafeEqualHex(verifyHash, hash);
 }
 
+/**
+ * Hash a recovery question for storage (not the answer, the question itself).
+ * This prevents the recovery question from being stored in clear text.
+ */
+export function hashRecoveryQuestion(question: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto
+    .pbkdf2Sync(question, salt, RECOVERY_QUESTION_HASH_ITERATIONS, PASSWORD_HASH_KEY_LENGTH, 'sha512')
+    .toString('hex');
+  return `${RECOVERY_QUESTION_HASH_VERSION}$${RECOVERY_QUESTION_HASH_ITERATIONS}$${salt}$${hash}`;
+}
+
+/**
+ * Verify a recovery question against its stored hash.
+ */
+export function verifyRecoveryQuestion(question: string, storedHash: string): boolean {
+  const parts = storedHash.split('$');
+  if (parts.length === 4 && parts[0] === RECOVERY_QUESTION_HASH_VERSION) {
+    const [, iterationsValue, salt, hash] = parts;
+    const iterations = Number(iterationsValue);
+    if (!Number.isInteger(iterations) || iterations <= 0 || iterations > 1000000 || !salt || !hash) return false;
+
+    const verifyHash = crypto
+      .pbkdf2Sync(question, salt, iterations, PASSWORD_HASH_KEY_LENGTH, 'sha512')
+      .toString('hex');
+    return timingSafeEqualHex(verifyHash, hash);
+  }
+  return false;
+}
 export async function setSession(memberId: string) {
   const token = crypto.randomBytes(SESSION_TOKEN_BYTES).toString('base64url');
   const expiresAt = getSessionExpiry();
@@ -125,7 +157,7 @@ export async function getAuthenticatedUser() {
   const userId = await getSessionUserId();
   if (!userId) return null;
 
-  const member = await prisma.member.findUnique({
+  const fullMember = await prisma.member.findUnique({
     where: { id: userId },
     select: {
       id: true,
@@ -135,50 +167,44 @@ export async function getAuthenticatedUser() {
       joined_at: true,
       password_changed: true,
       must_setup: true,
-      role: true,
-    },
-  });
-
-  if (!member) return null;
-
-  const role = member.role?.role || 'user';
-
-  if (role === 'admin') {
-    return {
-      id: member.id,
-      first_name: member.first_name,
-      last_name: member.last_name,
-      member_number: null,
-      qr_token: null,
-      username: member.username,
-      joined_at: member.joined_at.toISOString(),
-      expiry_date: null,
-      password_changed: member.password_changed,
-      must_setup: member.must_setup,
-      role,
-    };
-  }
-
-  const membership = await prisma.member.findUnique({
-    where: { id: userId },
-    select: {
+      role: { select: { role: true } },
       member_number: true,
       qr_token: true,
       expiry_date: true,
     },
   });
 
+  if (!fullMember) return null;
+
+  const role = fullMember.role?.role || 'user';
+
+  if (role === 'admin') {
+    return {
+      id: fullMember.id,
+      first_name: fullMember.first_name,
+      last_name: fullMember.last_name,
+      member_number: null,
+      qr_token: null,
+      username: fullMember.username,
+      joined_at: fullMember.joined_at.toISOString(),
+      expiry_date: null,
+      password_changed: fullMember.password_changed,
+      must_setup: fullMember.must_setup,
+      role,
+    };
+  }
+
   return {
-    id: member.id,
-    first_name: member.first_name,
-    last_name: member.last_name,
-    member_number: membership?.member_number ?? null,
-    qr_token: membership?.qr_token ?? null,
-    username: member.username,
-    joined_at: member.joined_at.toISOString(),
-    expiry_date: membership?.expiry_date?.toISOString() ?? null,
-    password_changed: member.password_changed,
-    must_setup: member.must_setup,
+    id: fullMember.id,
+    first_name: fullMember.first_name,
+    last_name: fullMember.last_name,
+    member_number: fullMember.member_number ?? null,
+    qr_token: fullMember.qr_token ?? null,
+    username: fullMember.username,
+    joined_at: fullMember.joined_at.toISOString(),
+    expiry_date: fullMember.expiry_date?.toISOString() ?? null,
+    password_changed: fullMember.password_changed,
+    must_setup: fullMember.must_setup,
     role,
   };
 }

@@ -1,6 +1,6 @@
 # Privacy Policy - Gestore Pub
 
-**Ultimo aggiornamento**: 14 giugno 2026  
+**Ultimo aggiornamento**: 19 giugno 2026
 **Versione**: 2.0  
 **Applicabile a**: Tutte le versioni ≥ 1.0.0
 
@@ -30,9 +30,9 @@ L'applicazione tratta **esclusivamente** i dati strettamente necessari alla gest
 | **Anagrafica Soci** | Nome, Cognome, Numero tessera (opzionale), Username univoco | Esecuzione contratto/statuto associativo |
 | **Temporali** | Data iscrizione, Data scadenza tessera (opzionale) | Esecuzione contratto/statuto associativo |
 | **Presenze** | Timestamp check-in, Giorno check-in, Flag socio eliminato | Legittimo interesse / Esecuzione contratto |
-| **Autenticazione** | Username, domanda recupero, hash password (PBKDF2-SHA512), hash risposta recupero (PBKDF2-SHA512) | Sicurezza sistemi / Obbligo legale protezione dati |
+| **Autenticazione** | Username, dati recupero protetti, hash password (PBKDF2-SHA512), hash risposta recupero (PBKDF2-SHA512) | Sicurezza sistemi / Obbligo legale protezione dati |
 | **Token QR** | Token base64url 32 byte (univoco per tessera) | Esecuzione contratto / Legittimo interesse |
-| **Export/Backup** | JSON completo (tutto sopra), CSV (solo anagrafica/presenze, no hash) | Obbligo conservazione / Legittimo interesse admin |
+| **Export/Backup** | JSON standard con anagrafica, presenze, ruoli, dati recupero non segreti e token QR; CSV senza hash | Obbligo conservazione / Legittimo interesse admin |
 
 \* *La base giuridica concreta spetta al titolare (amministratore club) valutare per la propria giurisdizione.*
 
@@ -107,7 +107,7 @@ Revoca:        Immediata su logout, cambio password, reset admin, scadenza
 ### 4.2 File Esportati (Export/Backup)
 | Tipo | Destinazione Default | Destinazione Personalizzabile | Contenuto Sensibile |
 |------|---------------------|------------------------------|---------------------|
-| Backup JSON | `~/Downloads/gestore-pub-backup-*.json` | ✅ Cartella scelta via File System Access API | **TUTTO** (hash, QR token, anagrafica) |
+| Backup JSON | `~/Downloads/gestore-pub-backup-*.json` | ✅ Cartella scelta via File System Access API | Anagrafica, storico, ruoli, dati recupero non segreti e token QR; **no hash password/recupero** |
 | CSV Soci | `~/Downloads/gestore-pub-soci-*.csv` | ✅ Stessa cartella backup | Anagrafica (no hash, no QR) |
 | CSV Presenze | `~/Downloads/gestore-pub-presenze-*.csv` | ✅ Stessa cartella backup | Storico check-in (no hash) |
 | PDF Tessere | `~/Downloads/tessera-*.pdf` | ✅ Stessa cartella backup | QR code + dati socio |
@@ -127,7 +127,7 @@ Revoca:        Immediata su logout, cambio password, reset admin, scadenza
 |------------|--------------|--------------|-----------|
 | Login/Setup/Recovery | **Solo server locale** (stesso origin) | Credenziali (HTTPS) | Su azione utente |
 | API CRUD Soci/Presenze | **Solo server locale** | Dati anagrafici/presenze | Su azione admin |
-| Export/Backup | **Solo server locale** → **File system client** | Dati completi DB | Su azione admin |
+| Export/Backup | **Solo server locale** → **File system client** | Backup standard senza hash password/recupero | Su azione admin |
 | Ripristino Backup | **File system client** → **Solo server locale** | Backup JSON | Su azione admin |
 | Controllo aggiornamenti | **Nessuno** (disabilitato) | - | Mai |
 | Analytics/Telemetria | **Nessuno** | - | Mai |
@@ -157,7 +157,7 @@ add_header Permissions-Policy "geolocation=(), microphone=(), camera=()";
 |----------|------------|----------------------|---------------|
 | Identificazione socio | Nome, Cognome, Numero tessera, Username | Esecuzione contratto/statuto | Fino a revoca iscrizione + obblighi legge |
 | Autenticazione accesso | Username, Hash password, Hash recovery | Sicurezza sistemi / Obbligo protezione dati | Fino a revoca account |
-| Recupero credenziali | Username, domanda recupero, hash risposta recupero | Sicurezza / Legittimo interesse | Fino a revoca account |
+| Recupero credenziali | Username, dati recupero protetti, hash risposta recupero | Sicurezza / Legittimo interesse | Fino a revoca account |
 | Registrazione presenze | Token QR, Timestamp, Giorno | Esecuzione contratto / Legittimo interesse | Definita da statuto/regolamento club |
 | Generazione tessere QR | Token QR, Dati anagrafici | Esecuzione contratto | Durata validità tessera |
 | Report/Statistiche | Presenze aggregate, Anagrafica | Legittimo interesse admin / Obblighi associativi | Definita da admin |

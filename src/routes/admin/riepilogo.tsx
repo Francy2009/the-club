@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useLoaderData } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useLoaderData } from '@tanstack/react-router'
 import { jsPDF } from 'jspdf'
 import { getMonthlySummaryFn } from '../../lib/api'
 import { savePdfDocument } from '../../lib/export-preferences'
@@ -15,7 +15,7 @@ export const Route = createFileRoute('/admin/riepilogo')({
   component: AdminSummary,
   beforeLoad: async ({ context }) => {
     if (!context.user || context.user.role !== 'admin') {
-      throw Route.navigate({ to: '/', replace: true })
+      throw redirect({ to: '/', replace: true })
     }
   },
 })

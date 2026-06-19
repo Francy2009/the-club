@@ -70,6 +70,21 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Generate Cargo lockfile
+        run: cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
+
+      - name: Check Rust crate
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+
       - name: Build frontend
         run: npm run build:tauri
 

@@ -1,12 +1,12 @@
-import { createFileRoute, useRouteContext, Link } from '@tanstack/react-router'
+import { createFileRoute, redirect, useRouteContext, Link } from '@tanstack/react-router'
 import { QRCodeSVG } from 'qrcode.react'
-import { Calendar, User, ShieldAlert, Award, AlertTriangle, ShieldCheck, QrCode, ClipboardList } from 'lucide-react'
+import { ShieldAlert, Award, AlertTriangle, ShieldCheck, QrCode, ClipboardList } from 'lucide-react'
 
 export const Route = createFileRoute('/profile')({
   component: Profile,
   beforeLoad: async ({ context }) => {
     if (!context.user) {
-      throw Route.navigate({ to: '/login', replace: true })
+      throw redirect({ to: '/login', replace: true })
     }
   },
 })
@@ -100,6 +100,8 @@ function Profile() {
   }
 
   // Calculate membership status for standard members
+  if (!user.expiry_date) return null
+
   const expiryDate = new Date(user.expiry_date)
   const joinedDate = new Date(user.joined_at)
   const today = new Date()

@@ -83,7 +83,7 @@ async function getStoredDirectoryHandle(): Promise<DirectoryHandle | null> {
   if (!('indexedDB' in window)) return null
 
   const db = await openDb()
-  return await new Promise((resolve, reject) => {
+  return await new Promise<DirectoryHandle | null>((resolve, reject) => {
     const request = db
       .transaction(EXPORT_STORE_NAME, 'readonly')
       .objectStore(EXPORT_STORE_NAME)
@@ -141,6 +141,16 @@ function downloadBlob(filename: string, blob: Blob) {
   link.click()
   link.remove()
   URL.revokeObjectURL(url)
+}
+
+function sanitizeDownloadFilename(filename: string) {
+  const sanitized = filename
+    .replace(/[\/\\:*?"<>|\u0000-\u001f]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^[. ]+|[. ]+$/g, '')
+
+  return sanitized || 'export'
 }
 
 function getTauriInvoke() {
@@ -233,12 +243,13 @@ export async function saveBlobToPreferredDestination(filename: string, blob: Blo
     return { method: 'downloads', directoryName: null, directoryPath: null, filePath: null, canOpenDirectory: false }
   }
 
+  const safeFilename = sanitizeDownloadFilename(filename)
   const preference = readPreference()
 
   if (preference.mode === 'folder') {
     const handle = await getStoredDirectoryHandle()
     if (handle && await ensureWritePermission(handle)) {
-      const fileHandle = await handle.getFileHandle(filename, { create: true })
+      const fileHandle = await handle.getFileHandle(safeFilename, { create: true })
       const writable = await fileHandle.createWritable()
       await writable.write(blob)
       await writable.close()
@@ -249,18 +260,18 @@ export async function saveBlobToPreferredDestination(filename: string, blob: Blo
         filePath: null,
         canOpenDirectory: false,
       } satisfies SaveResult
-      announceDownloadSuccess(filename, result)
+      announceDownloadSuccess(safeFilename, result)
       return result
     }
   }
 
-  const tauriResult = await saveBlobWithTauri(filename, blob)
+  const tauriResult = await saveBlobWithTauri(safeFilename, blob)
   if (tauriResult) {
-    announceDownloadSuccess(filename, tauriResult)
+    announceDownloadSuccess(safeFilename, tauriResult)
     return tauriResult
   }
 
-  downloadBlob(filename, blob)
+  downloadBlob(safeFilename, blob)
   const result = {
     method: 'downloads',
     directoryName: null,
@@ -268,7 +279,7 @@ export async function saveBlobToPreferredDestination(filename: string, blob: Blo
     filePath: null,
     canOpenDirectory: false,
   } satisfies SaveResult
-  announceDownloadSuccess(filename, result)
+  announceDownloadSuccess(safeFilename, result)
   return result
 }
 

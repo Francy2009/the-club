@@ -14,6 +14,7 @@ function isAllowedOrigin(origin: string, request: Request) {
   return origin === requestOrigin || configuredOrigins().includes(origin)
 }
 
+// CSRF middleware for all non-safe methods
 const csrfMiddleware = createMiddleware().server(async ({ next, request }) => {
   if (!SAFE_METHODS.has(request.method.toUpperCase())) {
     const origin = request.headers.get('origin')

@@ -4,6 +4,8 @@ dist
 dist-ssr
 *.local
 .env
+.env.*
+!.env.example
 .nitro
 .tanstack
 .wrangler
@@ -12,3 +14,17 @@ dist-ssr
 __unconfig*
 todos.json
 .codex-local-notes.md
+
+# Local databases and runtime data
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+prisma/dev.db
+
+# Tauri/Rust build output
+src-tauri/target/
+
+# Local exports/backups
+gestore-pub-backup-*.json
+gestore-pub-*.csv

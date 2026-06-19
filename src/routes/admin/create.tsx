@@ -1,16 +1,16 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { createMemberFn } from '../../lib/api'
 import { savePdfDocument } from '../../lib/export-preferences'
 import { QRCodeCanvas } from 'qrcode.react'
 import { jsPDF } from 'jspdf'
-import { UserPlus, ShieldAlert, ArrowLeft, Download, Award, ShieldCheck } from 'lucide-react'
+import { UserPlus, ShieldAlert, ArrowLeft, Download, ShieldCheck } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/create')({
   component: CreateMember,
   beforeLoad: async ({ context }) => {
     if (!context.user || context.user.role !== 'admin') {
-      throw Route.navigate({ to: '/', replace: true })
+      throw redirect({ to: '/', replace: true })
     }
   },
 })

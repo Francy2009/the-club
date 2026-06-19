@@ -38,6 +38,9 @@ type DesktopDb = {
 const DB_KEY = 'gestore-pub:desktop-db'
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/
 const DEFAULT_RECOVERY_QUESTION = 'Qual e la tua risposta di recupero?'
+const MAX_BACKUP_BYTES = 20 * 1024 * 1024
+const MAX_BACKUP_MEMBERS = 10000
+const MAX_BACKUP_ATTENDANCES = 250000
 
 type FnArgs = { data?: Record<string, unknown> } | undefined
 type TauriInvoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
@@ -101,6 +104,11 @@ export async function resetDesktopDatabase() {
   localStorage.removeItem(DB_KEY)
 }
 
+export async function resetLocalDatabaseFn() {
+  await resetDesktopDatabase()
+  return { success: true }
+}
+
 function getData(args?: FnArgs) {
   return args?.data ?? {}
 }
@@ -125,6 +133,12 @@ function optionalDateString(data: Record<string, unknown>, key: string) {
   if (typeof value !== 'string') throw new Error('Data non valida')
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) throw new Error('Data non valida')
+  return value
+}
+
+function requiredDateString(data: Record<string, unknown>, key: string) {
+  const value = optionalDateString(data, key)
+  if (!value) throw new Error('Data non valida')
   return value
 }
 
@@ -455,6 +469,7 @@ export async function loginFn(args?: FnArgs) {
   return {
     success: true,
     mustSetup: member.must_setup || !member.password_changed,
+    role: member.role,
   }
 }
 
@@ -498,7 +513,7 @@ export async function setupValidator(args?: FnArgs) {
   user.password_changed = true
   user.must_setup = false
   await saveDb(db)
-  return { success: true }
+  return { success: true, role: user.role }
 }
 
 export async function changeAdminPasswordFn(args?: FnArgs) {
@@ -590,7 +605,7 @@ export async function recoverPasswordFn(args?: FnArgs) {
   member.must_setup = false
   db.current_user_id = member.id
   await saveDb(db)
-  return { success: true }
+  return { success: true, role: member.role }
 }
 
 export async function getAllMembersFn() {
@@ -721,7 +736,8 @@ export async function registerAttendanceFn(args?: FnArgs) {
   assertRecord(data)
   const db = await loadDb()
   assertReadyAdmin(db)
-  const code = requiredString(data, 'member_id', 120)
+  const codeValue = typeof data.identifier === 'string' ? data.identifier : data.member_id
+  const code = requiredString({ code: codeValue }, 'code', 120)
   const member = db.members.find((candidate) => candidate.id === code || candidate.qr_token === code)
 
   if (!member) throw new Error('Membro non registrato o codice QR non valido')
@@ -998,7 +1014,14 @@ function assertUniqueValues(values: string[], label: string) {
 export async function restoreBackupFn(args?: FnArgs) {
   const data = getData(args)
   assertRecord(data)
-  const backupText = requiredString(data, 'backup', 20 * 1024 * 1024)
+  const rawBackupText = data.backup
+  if (typeof rawBackupText !== 'string' || rawBackupText.length < 20) {
+    throw new Error('File backup non valido')
+  }
+  const backupText = rawBackupText.trim()
+  if (new TextEncoder().encode(backupText).byteLength > MAX_BACKUP_BYTES) {
+    throw new Error('Backup troppo grande')
+  }
   const db = await loadDb()
   const user = assertReadyAdmin(db)
 
@@ -1011,6 +1034,14 @@ export async function restoreBackupFn(args?: FnArgs) {
 
   if (parsed?.application !== 'gestore-pub' || parsed.version !== 1 || !Array.isArray(parsed.data?.members) || !Array.isArray(parsed.data?.attendances)) {
     throw new Error('Backup non compatibile con questa applicazione')
+  }
+
+  if (parsed.data.members.length === 0 || parsed.data.members.length > MAX_BACKUP_MEMBERS) {
+    throw new Error('Backup non valido: numero soci fuori limite')
+  }
+
+  if (parsed.data.attendances.length > MAX_BACKUP_ATTENDANCES) {
+    throw new Error('Backup non valido: numero presenze fuori limite')
   }
 
   const restoredMembersWithFlags = await Promise.all(parsed.data.members.map(async (member: any) => {
@@ -1045,8 +1076,8 @@ export async function restoreBackupFn(args?: FnArgs) {
       password_hash: passwordHash,
       recovery_question: nullableString(member, 'recovery_question', 120),
       recovery_phrase_hash: recoveryPhraseHash,
-      joined_at: requiredString(member, 'joined_at', 80),
-      expiry_date: nullableString(member, 'expiry_date', 80),
+      joined_at: requiredDateString(member, 'joined_at'),
+      expiry_date: optionalDateString(member, 'expiry_date') ?? null,
       password_changed: isFullBackup ? Boolean(member.password_changed) : false,
       must_setup: isFullBackup ? Boolean(member.must_setup) : true,
       role: roleValue as 'admin' | 'user',
@@ -1072,7 +1103,7 @@ export async function restoreBackupFn(args?: FnArgs) {
   }
 
   const memberIds = new Set(restoredMembers.map((m) => m.id))
-  const restoredAttendances = parsed.data.attendances.map((attendance: any) => {
+  const restoredAttendances: DesktopAttendance[] = parsed.data.attendances.map((attendance: Record<string, unknown>) => {
     const memberId = typeof attendance.member_id === 'string' && memberIds.has(attendance.member_id)
       ? attendance.member_id
       : null
@@ -1080,7 +1111,7 @@ export async function restoreBackupFn(args?: FnArgs) {
     return {
       id: requiredString(attendance, 'id', 120),
       member_id: memberId,
-      check_in_time: requiredString(attendance, 'check_in_time', 80),
+      check_in_time: requiredDateString(attendance, 'check_in_time'),
       check_in_day: requiredString(attendance, 'check_in_day', 20),
       member_first_name: requiredString(attendance, 'member_first_name', 80),
       member_last_name: requiredString(attendance, 'member_last_name', 80),
@@ -1089,11 +1120,11 @@ export async function restoreBackupFn(args?: FnArgs) {
     }
   })
 
-  assertUniqueValues(restoredAttendances.map((a) => a.id), 'id presenze')
+  assertUniqueValues(restoredAttendances.map((attendance) => attendance.id), 'id presenze')
   assertUniqueValues(
     restoredAttendances
-      .filter((a) => a.member_id)
-      .map((a) => `${a.member_id}:${a.check_in_day}`),
+      .filter((attendance) => attendance.member_id)
+      .map((attendance) => `${attendance.member_id}:${attendance.check_in_day}`),
     'presenze giornaliere'
   )
 

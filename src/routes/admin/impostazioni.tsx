@@ -452,7 +452,7 @@ function AdminSettings() {
             </div>
 
             <div className="rounded-xl border border-teal-500/20 bg-teal-500/10 p-3 text-xs font-semibold leading-relaxed text-teal-700 dark:text-teal-200">
-              La domanda viene mostrata al recupero. La risposta puo essere una parola o poche parole e non viene salvata in chiaro.
+              Ricorda domanda e risposta: in fase di recupero la domanda non viene mostrata, e la risposta non viene salvata in chiaro.
             </div>
 
             <button
@@ -551,7 +551,7 @@ function AdminSettings() {
               </div>
 
               <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs font-semibold leading-relaxed text-amber-700 dark:text-amber-200">
-                Il backup contiene hash password, hash risposta recupero e token QR: tienilo su una chiavetta o disco protetto, non in una chat pubblica.
+                Il backup standard non contiene hash password o hash risposta recupero, ma include dati personali e token QR: tienilo su un supporto protetto, non in una chat pubblica.
               </div>
             </div>
 

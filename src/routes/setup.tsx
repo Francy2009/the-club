@@ -1,5 +1,6 @@
-import { createFileRoute, useNavigate, useRouter, useRouteContext } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate, useRouter, useRouteContext } from '@tanstack/react-router'
 import { useState } from 'react'
+import LocalDataResetPanel from '../components/LocalDataResetPanel'
 import { setupValidator } from '../lib/api'
 import { KeyRound, Lock, ShieldCheck, ShieldAlert, Check, X, User } from 'lucide-react'
 
@@ -8,7 +9,7 @@ export const Route = createFileRoute('/setup')({
   beforeLoad: async ({ context }) => {
     // If not logged in, redirect to login
     if (!context.user) {
-      throw Route.navigate({ to: '/login', replace: true })
+      throw redirect({ to: '/login', replace: true })
     }
   },
 })
@@ -76,11 +77,7 @@ function Setup() {
         // Invalidate router context so the app fetches the updated user object
         await router.invalidate()
         
-        // Wait and fetch updated user state
-        const updatedContext = await router.load()
-        const role = updatedContext?.context?.user?.role
-
-        if (role === 'admin') {
+        if (res.role === 'admin') {
           navigate({ to: '/admin', replace: true })
         } else {
           navigate({ to: '/profile', replace: true })
@@ -94,7 +91,7 @@ function Setup() {
   }
 
   return (
-    <main className="page-wrap flex min-h-[80vh] items-center justify-center py-6 sm:px-4 sm:py-12">
+    <main className="page-wrap flex min-h-[80vh] flex-col items-center justify-center py-6 sm:px-4 sm:py-12">
       <section className="island-shell rise-in w-full max-w-xl rounded-2xl p-5 sm:rounded-3xl sm:p-10">
         <div className="flex flex-col items-center mb-8">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 mb-3">
@@ -104,7 +101,7 @@ function Setup() {
             Configura il tuo Account
           </h1>
           <p className="text-sm text-[var(--sea-ink-soft)] mt-1 text-center">
-            Scegli username, password, domanda personale e risposta. La risposta viene salvata solo come hash e serve se dimentichi la password.
+            Scegli username, password, domanda personale e risposta. Ricorda entrambi: i dati di recupero sono protetti e servono se dimentichi la password.
           </p>
         </div>
 
@@ -348,6 +345,7 @@ function Setup() {
           </button>
         </form>
       </section>
+      <LocalDataResetPanel />
     </main>
   )
 }

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAllMembersFn, getCurrentUserFn, resetDesktopDatabase, setupValidator, exportBackupFn, restoreBackupFn } from './desktop-api'
 
 const DB_KEY = 'gestore-pub:desktop-db'
+type TestTauriInvoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
 
 describe('desktop first launch bootstrap', () => {
   beforeEach(() => {
@@ -44,8 +45,8 @@ describe('desktop first launch bootstrap', () => {
     })
 
     ;(window as typeof window & {
-      __TAURI__?: { core?: { invoke?: typeof invoke } }
-    }).__TAURI__ = { core: { invoke } }
+      __TAURI__?: { core?: { invoke?: TestTauriInvoke } }
+    }).__TAURI__ = { core: { invoke: invoke as unknown as TestTauriInvoke } }
 
     localStorage.setItem(DB_KEY, JSON.stringify({
       version: 1,
@@ -92,8 +93,8 @@ describe('desktop first launch bootstrap', () => {
     })
 
     ;(window as typeof window & {
-      __TAURI__?: { core?: { invoke?: typeof invoke } }
-    }).__TAURI__ = { core: { invoke } }
+      __TAURI__?: { core?: { invoke?: TestTauriInvoke } }
+    }).__TAURI__ = { core: { invoke: invoke as unknown as TestTauriInvoke } }
 
     const user = await getCurrentUserFn()
 
@@ -109,8 +110,8 @@ describe('desktop first launch bootstrap', () => {
   it('resets the Tauri database file without clearing unrelated local preferences', async () => {
     const invoke = vi.fn(async () => null)
     ;(window as typeof window & {
-      __TAURI__?: { core?: { invoke?: typeof invoke } }
-    }).__TAURI__ = { core: { invoke } }
+      __TAURI__?: { core?: { invoke?: TestTauriInvoke } }
+    }).__TAURI__ = { core: { invoke: invoke as unknown as TestTauriInvoke } }
 
     localStorage.setItem(DB_KEY, '{"version":1}')
     localStorage.setItem('theme', 'dark')
@@ -157,6 +158,38 @@ describe('desktop backup and restore security and QA', () => {
 
     await expect(restoreBackupFn({ data: { backup: JSON.stringify(backupObj) } }))
       .rejects.toThrow('Backup non valido: valore duplicato in username soci')
+  })
+
+  it('restore rejects backups with invalid member dates', async () => {
+    const stdBackup = await exportBackupFn()
+    const backupObj = JSON.parse(JSON.stringify(stdBackup.backup))
+    backupObj.data.members[0].joined_at = 'not-a-date'
+
+    await expect(restoreBackupFn({ data: { backup: JSON.stringify(backupObj) } }))
+      .rejects.toThrow('Data non valida')
+  })
+
+  it('restore rejects backups with too many members or oversized payloads', async () => {
+    const stdBackup = await exportBackupFn()
+    const tooManyMembersBackup = JSON.parse(JSON.stringify(stdBackup.backup))
+    tooManyMembersBackup.data.members = Array.from({ length: 10001 }, (_, index) => ({
+      ...stdBackup.backup.data.members[0],
+      id: `member-${index}`,
+      username: `member-${index}`,
+      role: {
+        ...stdBackup.backup.data.members[0].role,
+        id: `role-${index}`,
+        role: index === 0 ? 'admin' : 'user',
+      },
+      member_number: index === 0 ? null : `CARD-${index}`,
+      qr_token: index === 0 ? null : `qr-${index}`,
+    }))
+
+    await expect(restoreBackupFn({ data: { backup: JSON.stringify(tooManyMembersBackup) } }))
+      .rejects.toThrow('Backup non valido: numero soci fuori limite')
+
+    await expect(restoreBackupFn({ data: { backup: `{"x":"${'a'.repeat(20 * 1024 * 1024)}"}` } }))
+      .rejects.toThrow('Backup troppo grande')
   })
 
   it('restore handles standard backups by generating temporary passwords', async () => {

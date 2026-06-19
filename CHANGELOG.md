@@ -7,6 +7,25 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.17] - 2026-06-19
+
+### Aggiunto
+- CI su pull request e push con audit npm, typecheck, test e build.
+- Dependabot per dipendenze npm, Cargo e GitHub Actions.
+- Pin della toolchain Rust stabile tramite `rust-toolchain.toml`.
+- Workflow release rafforzato con audit, typecheck, test, generazione lockfile Cargo e `cargo check` prima del packaging Tauri.
+- Pannello reset dati locali disponibile anche nella home da sloggati, con conferma `RESETTA L'APP` e flag esplicito in sviluppo web.
+
+### Modificato
+- Recupero account reso piu prudente contro username enumeration: risposta generica e validazione effettiva solo nel flusso di recupero.
+- Documentazione sicurezza/privacy aggiornata per GitHub Release e comportamento reale dei backup.
+- Script demo aggiornato per non usare password debole hardcoded.
+
+### Sicurezza
+- Limiti dimensione e validazione aggiunti per database/export Tauri.
+- Apertura cartella export Tauri vincolata alla cartella Download dopo canonicalizzazione del percorso.
+- File locali sensibili, database, backup ed export esclusi dal tracking Git.
+
 ## [1.0.16] - 2026-06-17
 
 ### Modificato

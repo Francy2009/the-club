@@ -59,8 +59,8 @@ chiede di configurare:
 - domanda personale;
 - risposta di recupero.
 
-La risposta di recupero viene salvata come hash, non in chiaro. Serve nel caso
-in cui l'amministratore dimentichi la password.
+I dati di recupero vengono protetti e la risposta non viene salvata in chiaro.
+Servono nel caso in cui l'amministratore dimentichi la password.
 
 ## Dove Vengono Salvati I Dati
 
@@ -93,7 +93,7 @@ Non vanno caricati in chat pubbliche, email non protette o cloud non affidabili.
 L'app include alcune protezioni pensate per un uso reale locale:
 
 - password salvate con hash PBKDF2-SHA512;
-- risposta di recupero salvata come hash separato;
+- dati di recupero protetti e risposta salvata come hash separato;
 - database desktop fuori dal `localStorage` della WebView;
 - Content Security Policy nel bundle Tauri;
 - backup standard senza hash password o hash risposta recupero;
@@ -107,6 +107,7 @@ backup sicuri e attenzione nel condividere file o QR code.
 Per maggiori dettagli tecnici vedi:
 
 - [PRIVACY.md](PRIVACY.md)
+- [SECURITY.md](SECURITY.md)
 - [SECURITY_AUDIT_REPORT.md](SECURITY_AUDIT_REPORT.md)
 
 ## Sviluppo Locale
@@ -115,7 +116,8 @@ Requisiti principali:
 
 - Node.js;
 - npm;
-- Rust e Cargo, solo per compilare l'app desktop Tauri.
+- Rust e Cargo, solo per compilare l'app desktop Tauri. Il repo include
+  `rust-toolchain.toml` per usare la toolchain stabile con profilo minimale.
 
 Installa le dipendenze:
 
@@ -128,6 +130,16 @@ Avvia in sviluppo web:
 ```bash
 npm run dev
 ```
+
+Il comando standard ascolta solo su `127.0.0.1`. Se devi provare il pannello di
+reset del database locale durante lo sviluppo, abilitalo esplicitamente:
+
+```bash
+npm run dev:reset
+```
+
+Non usare `dev:reset` su reti condivise: abilita una funzione distruttiva pensata
+solo per sviluppo locale.
 
 Build frontend:
 
@@ -144,7 +156,9 @@ npm run build:tauri
 Build desktop Tauri:
 
 ```bash
+rustup show
 cd src-tauri
+cargo generate-lockfile
 cargo tauri build
 ```
 
@@ -188,7 +202,8 @@ npm run build:tauri
 ```
 
 La compilazione nativa Tauri viene verificata dal workflow GitHub Actions sulle
-piattaforme supportate.
+piattaforme supportate. Per release riproducibili, `src-tauri/Cargo.lock`
+dovrebbe essere generato e committato insieme al codice Rust/Tauri.
 
 ## Licenza
 

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useLoaderData } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useLoaderData } from '@tanstack/react-router'
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { getCheckInMembersFn, getTodayAttendanceFn, registerAttendanceFn } from '../../lib/api'
 import { Scanner } from '@yudiel/react-qr-scanner'
@@ -18,7 +18,7 @@ export const Route = createFileRoute('/admin/scanner')({
   component: ScannerPage,
   beforeLoad: async ({ context }) => {
     if (!context.user || context.user.role !== 'admin') {
-      throw Route.navigate({ to: '/', replace: true })
+      throw redirect({ to: '/', replace: true })
     }
   },
 })
@@ -122,6 +122,8 @@ function ScannerPage() {
       return value
     }
   }
+
+  const generateLocalId = () => crypto.randomUUID()
  
   const processCode = async (rawValue: string, source: 'scanner' | 'manual' = 'manual') => {
     const codeValue = normalizeCodeValue(rawValue)
@@ -152,7 +154,7 @@ function ScannerPage() {
  
     try {
       const res = await registerAttendanceFn({
-        data: { member_id: codeValue },
+        data: { identifier: codeValue },
       })
  
       const timeString = new Date().toLocaleTimeString('it-IT', {
@@ -160,13 +162,10 @@ function ScannerPage() {
         minute: '2-digit',
         second: '2-digit',
       })
- 
-      // Bulletproof local ID generator (works offline in all browsers without window.crypto requirement)
-      const generateLocalId = () => Math.random().toString(36).slice(2) + Date.now().toString(36)
- 
+
       if (res.success) {
         const memberName = `${res.member.first_name} ${res.member.last_name}`
-        const memberNum = res.member.member_number
+        const memberNum = res.member.member_number ?? 'N/D'
  
         if (res.alreadyCheckedIn) {
           setScanResult({
@@ -227,9 +226,7 @@ function ScannerPage() {
         status: 'error',
         message: errMsg,
       })
- 
-      const generateLocalId = () => Math.random().toString(36).slice(2) + Date.now().toString(36)
- 
+
       setLogs((prev) => [
         {
           id: generateLocalId(),

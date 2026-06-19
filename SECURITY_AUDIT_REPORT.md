@@ -1,12 +1,12 @@
 # Security Audit Report - Gestore Pub
 
-**Data Analisi:** 2026-06-17
-**Versione Applicazione:** 1.0.15
+**Data Analisi:** 2026-06-18
+**Versione Applicazione:** 1.0.17
 **Tipologia:** Applicazione locale per gestione soci e presenze (Club Privato)  
 **Stack Tecnologico:** React 19, TanStack Start, Prisma ORM, SQLite, Tauri 2 (Desktop)  
 **Ambiente:** Single-page application con backend integrato (Server Functions), deployabile come web app o app desktop Tauri
 
-**Stato mitigazioni (2026-06-15):** le vulnerabilità principali sono state indirizzate nel codice:
+**Stato mitigazioni (2026-06-18):** le vulnerabilità principali sono state indirizzate nel codice:
 - rate limiting login/recupero persistente su SQLite tramite `RateLimitAttempt`;
 - protezione CSRF globale per richieste non-GET con controllo `Origin`/`Sec-Fetch-Site`;
 - backup standard senza hash password/frase recupero; l'esportazione completa con credenziali è stata rimossa dalle API pubbliche;
@@ -37,7 +37,7 @@ Le vulnerabilità principali identificate nella prima analisi sono state mitigat
 **File:** `src/lib/api.functions.ts` (righe 160-220)
 
 **Descrizione:**  
-Il rate limiting per login (`loginAttempts` Map) e recupero password (`recoveryAttempts` Map) è implementato usando `Map` in-memory del processo Node.js. Questo presenta tre problemi critici:
+La prima versione del rate limiting per login (`loginAttempts` Map) e recupero password (`recoveryAttempts` Map) usava `Map` in-memory del processo Node.js. Quel modello presentava tre problemi critici:
 1. **Non persistente:** Riavviando il server si azzerano i contatori, permettendo attacchi di brute-force illimitati.
 2. **Non distribuito:** In deployment multi-istanza (es. dietro load balancer), ogni istanza ha il proprio contatore, vanificando la protezione.
 3. **Memory exhaustion:** Un attaccante può generare milioni di entry uniche (username casuali) causando DoS per esaurimento memoria.
@@ -54,20 +54,9 @@ done
 
 **Mitigazione:**
 ```typescript
-// Usare Redis con sliding window log o token bucket
-// Esempio con ioredis (da aggiungere come dipendenza)
-import Redis from 'ioredis';
-const redis = new Redis(process.env.REDIS_URL);
-
-async function assertLoginAllowed(username: string) {
-  const key = `ratelimit:login:${username.toLowerCase()}`;
-  const current = await redis.incr(key);
-  if (current === 1) await redis.expire(key, 15 * 60); // 15 min window
-  if (current > 8) {
-    const ttl = await redis.ttl(key);
-    throw new Error(`Troppi tentativi. Riprova tra ${ttl} secondi.`);
-  }
-}
+// Stato attuale: RateLimitAttempt persistente su SQLite.
+// Per deployment web multi-istanza usare uno store condiviso esterno
+// come Redis/Upstash, mantenendo la stessa semantica di lockout.
 ```
 
 ---
@@ -117,7 +106,7 @@ export const csrfMiddleware = createMiddleware({ type: 'function' })
 **File:** `src/lib/api.functions.ts` (funzione `exportBackupFn`, righe 1150-1250)
 
 **Descrizione:**  
-La funzione `exportBackupFn` esporta **tutti gli hash password** (`member.password`) e **tutti gli hash delle frasi di recupero** (`member.recovery_phrase_hash`) nel file JSON di backup, insieme ai token QR. Sebbene siano hash (non plaintext), questo viola il principio di *minimizzazione dei dati* e espone credenziali a:
+La prima versione di `exportBackupFn` esportava **tutti gli hash password** (`member.password`) e **tutti gli hash delle frasi di recupero** (`member.recovery_phrase_hash`) nel file JSON di backup, insieme ai token QR. Sebbene fossero hash (non plaintext), questo violava il principio di *minimizzazione dei dati* ed esponeva credenziali a:
 - Attacchi offline di password cracking (se backup rubato)
 - Rainbow table / dictionary attacks su hash PBKDF2
 - Riutilizzo credenziali su altri sistemi (credential stuffing)
@@ -138,10 +127,10 @@ const backup = {
   data: {
     members: members.map((member) => ({
       // ...existing code...
-      // RIMUOVERE: password, recovery_phrase_hash, qr_token
+      // RIMUOVERE: password, recovery_phrase_hash
       // password: member.password,        // <-- REMOVE
       // recovery_phrase_hash: member.recovery_phrase_hash,  // <-- REMOVE
-      // qr_token: member.qr_token,       // <-- REMOVE (o opzionale)
+      // qr_token resta nel backup standard per preservare la continuita delle tessere
       // AGGIUNGERE: flag per indicare se recovery phrase è impostata
       has_recovery_phrase: Boolean(member.recovery_phrase_hash),
     })),
@@ -155,16 +144,18 @@ const backup = {
 
 ---
 
-### 2.4 [MEDIA] Username Enumeration via Messaggi Errore Differenziati
+### 2.4 [RISOLTA] Username Enumeration via Messaggi Errore Differenziati
+
+**Stato attuale:** login e recupero password usano messaggi generici, dummy hash per utenti inesistenti e registrazione fallimenti anche quando l'utente non esiste.
 
 **File:** `src/lib/api.functions.ts` (funzioni `loginFn` righe 650-690, `recoverPasswordFn` righe 580-640)
 
 **Descrizione:**  
-I messaggi di errore differenziano tra "utente inesistente" e "password errata":
+La prima analisi evidenziava possibili differenze tra "utente inesistente" e "password errata":
 - Login: `recordLoginFailure` chiamato solo se utente esiste → messaggio generico "Credenziali non valide" ma **timing attack** possibile
 - Recovery: `recordRecoveryFailure` chiamato prima di verificare esistenza utente → **stesso messaggio** ma logica diversa
 
-In `recoverPasswordFn`: se utente non esiste, usa `DUMMY_PASSWORD_HASH` per verificare la recovery phrase (costante tempo), ma **chiama `recordRecoveryFailure`** rivelando che l'username è stato processato.
+Nel codice attuale i percorsi sono stati uniformati: `loginFn` e `recoverPasswordFn` controllano il rate limit prima della query, verificano sempre un hash reale o dummy, registrano sempre il fallimento e restituiscono messaggi non specifici.
 
 **Scenario di Attacco (PoC Concettuale):**
 ```bash
@@ -175,7 +166,7 @@ for user in $(cat userlist.txt); do
 done
 ```
 
-**Mitigazione:**
+**Mitigazione applicata:**
 ```typescript
 // Unificare completamente i percorsi: SEMPRE stessa logica, stesso timing
 export const loginFn = createServerFn({ method: 'POST' })
@@ -258,24 +249,22 @@ export const promoteUserFn = createServerFn({ method: 'POST' })
 
 ---
 
-### 2.7 [BASSA] DevTools TanStack Inclusi in Build di Produzione (Rischio Information Disclosure)
+### 2.7 [RISOLTA] DevTools TanStack Limitati allo Sviluppo
 
 **File:** `vite.config.ts` (riga 12: `devtools()` sempre attivo), `package.json` (devDependencies)
 
 **Descrizione:**  
-Il plugin `@tanstack/devtools-vite` è registrato **incondizionatamente** nel config Vite. Anche se la documentazione TanStack indica che `removeDevtoolsOnBuild` dovrebbe rimuoverlo in produzione, il plugin è caricato sempre. In build di produzione, questo potrebbe:
+Il plugin `@tanstack/devtools-vite` era un punto da verificare perché, se registrato incondizionatamente, avrebbe potuto:
 - Aumentare bundle size inutilmente
 - Esporre route tree, loader data, mutation state se non strippato correttamente
 - Lasciare codice di debugging in produzione
 
-**Verifica necessaria:** Controllare `dist/client` build di produzione per assenza codice devtools.
+**Stato attuale:** `vite.config.ts` registra DevTools solo quando `command === 'serve'`, quindi la build produzione non include il plugin.
 
 **Mitigazione:**
 ```typescript
-// vite.config.ts
 plugins: [
-  // Solo in development
-  process.env.NODE_ENV === 'development' && devtools(),
+  command === 'serve' && devtools(),
   // ...
 ].filter(Boolean),
 ```
@@ -293,7 +282,7 @@ plugins: [
 | `setupValidator` | **ALTO** | Impostazione credenziali iniziali admin, esposto post-login |
 | `restoreBackupFn` | **ALTO** | Sovrascrive intero DB, esegue come admin, accetta input utente |
 | `createMemberFn` | **MEDIO** | Crea account con password nota (ritornata in response!) |
-| `exportBackupFn` | **MEDIO** | Esfiltrazione massiva dati sensibili (hash, QR token) |
+| `exportBackupFn` | **MEDIO** | Esfiltrazione massiva dati personali e token QR |
 | `registerAttendanceFn` | **BASSO** | Input `member_id`/`qr_token` validato ma no rate limit |
 
 ### 3.2 Componenti Architetturali a Rischio
@@ -315,18 +304,17 @@ plugins: [
        │              ┌─────┴─────┐                  │
        │              ▼           ▼                  │
        │         Auth Logic   Rate Limit             │
-       │         (PBKDF2)     (In-Memory Map)        │
+       │         (PBKDF2)     (SQLite)               │
        │              │           │                  │
        ▼              ▼           ▼                  ▼
 ┌─────────────┐  ┌──────────┐ ┌────────┐      ┌──────────┐
-│ App Data DB │  │ Cookies  │ │ Memory │      │  Backup  │
+│ App Data DB │  │ Cookies  │ │ SQLite │      │  Backup  │
 │ (Desktop)   │  │ (Session)│ │ (RateL)│      │  (JSON)  │
 └─────────────┘  └──────────┘ └────────┘      └──────────┘
                                                     │
                                             ┌───────┴───────┐
                                             ▼               ▼
-                                      Password Hash    Recovery Hash
-                                      (PBKDF2)         (PBKDF2)
+                                      QR Token      No Password Hashes
 ```
 
 ---
@@ -338,9 +326,10 @@ plugins: [
 | Fase | Raccomandazione | Priorità |
 |------|-----------------|----------|
 | **Development** | Abilitare `strict: true` in `tsconfig.json` (già presente) | ✅ Fatto |
+| **Development** | Typecheck `tsc --noEmit` pulito e aggiunto come gate CI | ✅ Fatto |
 | **Development** | Aggiungere `eslint-plugin-security` e regole `no-eval`, `no-unsanitized` | 🔴 Alta |
 | **Pre-commit** | Husky + `lint-staged` per ESLint, Prettier, `npm audit` | 🟡 Media |
-| **CI/CD** | GitHub Actions: `npm audit --audit-level=high`, `snyk test`, build test | 🔴 Alta |
+| **CI/CD** | GitHub Actions: `npm audit`, test e build su PR/push | ✅ Fatto |
 | **CI/CD** | Dependency review action per PR (`github/dependency-review-action`) | 🟡 Media |
 | **Release** | Firmare build Tauri (code signing Windows/macOS) | 🔴 Alta |
 | **Release** | SBOM generazione (`@cyclonedx/bom`) per supply chain | 🟢 Bassa |
@@ -389,10 +378,10 @@ In Tauri v2 non usare esempi `allowlist` v1: il controllo principale resta sui c
 
 | Area | Azione | File |
 |------|--------|------|
-| **Rate Limiting** | Migrare a Redis/Upstash o SQLite-based persistent store | `api.functions.ts` |
-| **CSRF** | Implementare double-submit cookie o Origin check middleware | `src/start.ts` (nuovo) |
-| **Backup** | Separare backup "standard" (no segreti) da "full" (cifrato, solo admin) | `api.functions.ts` |
-| **Enum Utenti** | Unificare messaggi errore e timing in login/recovery | `api.functions.ts` |
+| **Rate Limiting** | Per deployment multi-istanza migrare da SQLite locale a Redis/Upstash condiviso | `api.functions.ts` |
+| **CSRF** | Valutare double-submit cookie se l'app viene esposta come servizio web pubblico | `src/start.ts` |
+| **Backup** | Valutare backup cifrato opzionale; il backup standard resta senza hash password/recupero | `api.functions.ts` |
+| **Enum Utenti** | Mantenere messaggi e timing uniformi in login/recovery durante future modifiche | `api.functions.ts` |
 | **Sessioni** | Aggiungere `sessionId` in cookie + tabella sessioni con user-agent/IP | `auth.server.ts` |
 | **Password Policy** | Aggiungere controllo HaveIBeenPwned (k-anonymity) su setup/password change | `api.functions.ts` |
 | **Audit Log** | Loggare azioni admin (create/delete/renew/backup/restore) in tabella dedicata | Nuovo modello Prisma |
@@ -465,6 +454,8 @@ describe('Security: Backup', () => {
 - [x] CSP configurato in `tauri.conf.json`
 - [x] Database desktop fuori da `localStorage`, in file dati app con migrazione automatica
 - [x] DevTools rimossi da build produzione
+- [x] CI base con audit dipendenze, test e build
+- [x] Typecheck `tsc --noEmit` pulito e aggiunto alla CI
 - [ ] Headers sicurezza (HSTS, X-Frame-Options, etc.) configurati
 - [ ] Audit logging per azioni admin
 - [ ] Code signing certificati Tauri configurati

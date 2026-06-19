@@ -32,6 +32,23 @@ function hashPassword(password: string): string {
   return `${PASSWORD_HASH_VERSION}$${PASSWORD_HASH_ITERATIONS}$${salt}$${hash}`;
 }
 
+function generateTemporaryPassword(length = 16): string {
+  const requiredChars = ['A', 'a', '1', '!'];
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+  const passwordChars = [...requiredChars];
+
+  while (passwordChars.length < length) {
+    passwordChars.push(chars[crypto.randomInt(chars.length)]);
+  }
+
+  for (let i = passwordChars.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(i + 1);
+    [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
+  }
+
+  return passwordChars.join('');
+}
+
 function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
@@ -83,7 +100,6 @@ async function main() {
   }
 
   const today = new Date();
-  const passwordHash = hashPassword('Demo123!');
   const createdMembers: Array<{
     id: string;
     first_name: string;
@@ -106,7 +122,7 @@ async function main() {
         member_number: memberNumber,
         qr_token: crypto.randomBytes(32).toString('base64url'),
         username,
-        password: passwordHash,
+        password: hashPassword(generateTemporaryPassword()),
         joined_at: joinedAt,
         expiry_date: expiryDate,
         password_changed: false,

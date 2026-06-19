@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start';
 import { prisma } from './db';
-import { getAuthenticatedUser, verifyPassword, hashPassword, setSession, destroySession } from './auth.server';
+import { getAuthenticatedUser, verifyPassword, hashPassword, setSession, destroySession, hashRecoveryQuestion } from './auth.server';
 import crypto from 'node:crypto';
 
 type AuthenticatedUser = {
@@ -11,8 +11,6 @@ type AuthenticatedUser = {
 };
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
-const DEFAULT_RECOVERY_QUESTION = 'Qual e la tua risposta di recupero?';
-const DUMMY_PASSWORD_HASH = 'pbkdf2_sha512$310000$00000000000000000000000000000000$ae47c89509232aade637ffdfb5cd6455bae8d1cb5397d1378dd1dd1113c3e81760f52a2ae4c57c4e850da8b186461ecc46ec269759101aad6483086904322d72';
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 8;
@@ -23,158 +21,190 @@ const MAX_BACKUP_BYTES = 20 * 1024 * 1024;
 const MAX_BACKUP_MEMBERS = 10000;
 const MAX_BACKUP_ATTENDANCES = 250000;
 
-// SQLite-based rate limiting functions (persistent across restarts)
-async function assertLoginAllowed(username: string) {
-  const key = username.toLowerCase();
-  const now = new Date();
+// Admin rate limiting constants
+const ADMIN_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const ADMIN_MAX_REQUESTS = 100; // 100 requests per hour per admin
+const ADMIN_SENSITIVE_MAX_REQUESTS = 10; // 10 sensitive ops per hour (export, restore, delete)
 
+/**
+ * Rate limiting for admin actions - tracks by admin user ID
+ * Uses atomic database operations to prevent race conditions
+ */
+async function assertAdminAllowed(adminId: string, type: 'general' | 'sensitive' = 'general') {
+  const configKey = type === 'sensitive' ? 'admin_sensitive' : 'admin_general';
+  const result = await checkAndRecordRateLimit(`admin:${adminId}:${type}`, configKey);
+  if (!result.allowed) {
+    throw new Error(`Troppi richieste admin. Riprova tra ${result.retryAfterMinutes} min.`);
+  }
+}
+
+/**
+ * Generates a unique dummy password hash per request for timing-safe comparison
+ * with non-existent users. This prevents username enumeration attacks.
+ */
+function generateDummyPasswordHash(): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto
+    .pbkdf2Sync(crypto.randomBytes(32).toString('base64url'), salt, 310000, 64, 'sha512')
+    .toString('hex');
+  return `pbkdf2_sha512$310000$${salt}$${hash}`;
+}
+
+// SQLite-based rate limiting functions (persistent across restarts)
+// Uses atomic database operations to prevent race conditions
+
+interface RateLimitConfig {
+  windowMs: number;
+  maxFailures: number;
+  lockMs: number;
+  type: 'login' | 'recovery' | 'admin';
+}
+
+const RATE_LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
+  login: { windowMs: LOGIN_WINDOW_MS, maxFailures: LOGIN_MAX_FAILURES, lockMs: LOGIN_LOCK_MS, type: 'login' },
+  recovery: { windowMs: RECOVERY_WINDOW_MS, maxFailures: RECOVERY_MAX_FAILURES, lockMs: RECOVERY_LOCK_MS, type: 'recovery' },
+  admin_general: { windowMs: ADMIN_WINDOW_MS, maxFailures: ADMIN_MAX_REQUESTS, lockMs: ADMIN_WINDOW_MS, type: 'admin' },
+  admin_sensitive: { windowMs: ADMIN_WINDOW_MS, maxFailures: ADMIN_SENSITIVE_MAX_REQUESTS, lockMs: ADMIN_WINDOW_MS, type: 'admin' },
+};
+
+/**
+ * Atomically check and record a rate limit attempt.
+ * Returns { allowed: boolean, lockedUntil?: Date, retryAfterMinutes?: number }
+ */
+async function checkAndRecordRateLimit(
+  identifier: string,
+  configKey: keyof typeof RATE_LIMIT_CONFIGS
+): Promise<{ allowed: boolean; lockedUntil?: Date; retryAfterMinutes?: number }> {
+  const config = RATE_LIMIT_CONFIGS[configKey];
+  const now = new Date();
+  const windowStartMs = now.getTime() - config.windowMs;
+
+  // Use a transaction to atomically check and update
+  return await prisma.$transaction(async (tx) => {
+    // Find existing attempt
+    const attempt = await tx.rateLimitAttempt.findUnique({
+      where: { identifier_type: { identifier, type: config.type } },
+    });
+
+    // No previous attempt - create new record with count 1
+    if (!attempt) {
+      await tx.rateLimitAttempt.create({
+        data: {
+          identifier,
+          type: config.type,
+          failedCount: 1,
+          windowStart: now,
+          lockedUntil: null,
+        },
+      });
+      return { allowed: true };
+    }
+
+    // Check if currently locked
+    if (attempt.lockedUntil && attempt.lockedUntil > now) {
+      const minutes = Math.ceil((attempt.lockedUntil.getTime() - now.getTime()) / 60000);
+      return { allowed: false, lockedUntil: attempt.lockedUntil, retryAfterMinutes: minutes };
+    }
+
+    // Check if window has expired - if so, reset counter
+    if (attempt.windowStart.getTime() < windowStartMs) {
+      await tx.rateLimitAttempt.update({
+        where: { identifier_type: { identifier, type: config.type } },
+        data: {
+          failedCount: 1,
+          windowStart: now,
+          lockedUntil: null,
+          updatedAt: now,
+        },
+      });
+      return { allowed: true };
+    }
+
+    // Window still active - increment counter
+    const nextCount = attempt.failedCount + 1;
+    let nextLockedUntil: Date | null = null;
+
+    if (nextCount >= config.maxFailures) {
+      nextLockedUntil = new Date(now.getTime() + config.lockMs);
+    }
+
+    await tx.rateLimitAttempt.update({
+      where: { identifier_type: { identifier, type: config.type } },
+      data: {
+        failedCount: nextCount,
+        lockedUntil: nextLockedUntil,
+        updatedAt: now,
+      },
+    });
+
+    if (nextLockedUntil) {
+      const minutes = Math.ceil(config.lockMs / 60000);
+      return { allowed: false, lockedUntil: nextLockedUntil, retryAfterMinutes: minutes };
+    }
+
+    return { allowed: true };
+  });
+}
+
+async function checkRateLimitAllowed(
+  identifier: string,
+  configKey: keyof typeof RATE_LIMIT_CONFIGS
+): Promise<{ allowed: boolean; lockedUntil?: Date; retryAfterMinutes?: number }> {
+  const config = RATE_LIMIT_CONFIGS[configKey];
+  const now = new Date();
   const attempt = await prisma.rateLimitAttempt.findUnique({
-    where: { identifier_type: { identifier: key, type: 'login' } },
+    where: { identifier_type: { identifier, type: config.type } },
   });
 
-  if (!attempt) return;
+  if (!attempt) return { allowed: true };
 
   if (attempt.lockedUntil && attempt.lockedUntil > now) {
     const minutes = Math.ceil((attempt.lockedUntil.getTime() - now.getTime()) / 60000);
-    throw new Error(`Troppi tentativi non riusciti. Riprova tra ${minutes} min.`);
+    return { allowed: false, lockedUntil: attempt.lockedUntil, retryAfterMinutes: minutes };
   }
 
-  // Check if window has expired
-  const windowStart = attempt.windowStart;
-  if (now.getTime() - windowStart.getTime() > LOGIN_WINDOW_MS) {
-    // Window expired, delete the record
-    await prisma.rateLimitAttempt.delete({
-      where: { identifier_type: { identifier: key, type: 'login' } },
-    });
-    return;
+  return { allowed: true };
+}
+
+/**
+ * Clear rate limit failures for an identifier (on successful login/recovery)
+ */
+async function clearRateLimitFailures(identifier: string, type: 'login' | 'recovery') {
+  const key = identifier.toLowerCase();
+  await prisma.rateLimitAttempt.deleteMany({
+    where: { identifier: key, type },
+  });
+}
+
+// Backward-compatible wrapper functions
+async function assertLoginAllowed(username: string) {
+  const result = await checkRateLimitAllowed(username.toLowerCase(), 'login');
+  if (!result.allowed) {
+    throw new Error(`Troppi tentativi non riusciti. Riprova tra ${result.retryAfterMinutes} min.`);
   }
 }
 
 async function recordLoginFailure(username: string) {
-  const key = username.toLowerCase();
-  const now = new Date();
-
-  const attempt = await prisma.rateLimitAttempt.findUnique({
-    where: { identifier_type: { identifier: key, type: 'login' } },
-  });
-
-  let nextFailedCount = 1;
-  let nextWindowStart = now;
-  let nextLockedUntil: Date | null = null;
-
-  if (attempt) {
-    const windowStart = attempt.windowStart;
-    if (now.getTime() - windowStart.getTime() <= LOGIN_WINDOW_MS) {
-      // Still in window
-      nextFailedCount = attempt.failedCount + 1;
-      nextWindowStart = windowStart;
-    }
-    // else window expired, start fresh (nextFailedCount = 1, nextWindowStart = now)
-  }
-
-  if (nextFailedCount >= LOGIN_MAX_FAILURES) {
-    nextLockedUntil = new Date(now.getTime() + LOGIN_LOCK_MS);
-  }
-
-  await prisma.rateLimitAttempt.upsert({
-    where: { identifier_type: { identifier: key, type: 'login' } },
-    create: {
-      identifier: key,
-      type: 'login',
-      failedCount: nextFailedCount,
-      windowStart: nextWindowStart,
-      lockedUntil: nextLockedUntil,
-    },
-    update: {
-      failedCount: nextFailedCount,
-      windowStart: nextWindowStart,
-      lockedUntil: nextLockedUntil,
-      updatedAt: now,
-    },
-  });
+  await checkAndRecordRateLimit(username.toLowerCase(), 'login');
 }
 
 async function clearLoginFailures(username: string) {
-  const key = username.toLowerCase();
-  await prisma.rateLimitAttempt.deleteMany({
-    where: { identifier: key, type: 'login' },
-  });
+  await clearRateLimitFailures(username, 'login');
 }
 
 async function assertRecoveryAllowed(username: string) {
-  const key = username.toLowerCase();
-  const now = new Date();
-
-  const attempt = await prisma.rateLimitAttempt.findUnique({
-    where: { identifier_type: { identifier: key, type: 'recovery' } },
-  });
-
-  if (!attempt) return;
-
-  if (attempt.lockedUntil && attempt.lockedUntil > now) {
-    const minutes = Math.ceil((attempt.lockedUntil.getTime() - now.getTime()) / 60000);
-    throw new Error(`Troppi tentativi di recupero. Riprova tra ${minutes} min.`);
-  }
-
-  // Check if window has expired
-  const windowStart = attempt.windowStart;
-  if (now.getTime() - windowStart.getTime() > RECOVERY_WINDOW_MS) {
-    // Window expired, delete the record
-    await prisma.rateLimitAttempt.delete({
-      where: { identifier_type: { identifier: key, type: 'recovery' } },
-    });
-    return;
+  const result = await checkRateLimitAllowed(username.toLowerCase(), 'recovery');
+  if (!result.allowed) {
+    throw new Error(`Troppi tentativi di recupero. Riprova tra ${result.retryAfterMinutes} min.`);
   }
 }
 
 async function recordRecoveryFailure(username: string) {
-  const key = username.toLowerCase();
-  const now = new Date();
-
-  const attempt = await prisma.rateLimitAttempt.findUnique({
-    where: { identifier_type: { identifier: key, type: 'recovery' } },
-  });
-
-  let nextFailedCount = 1;
-  let nextWindowStart = now;
-  let nextLockedUntil: Date | null = null;
-
-  if (attempt) {
-    const windowStart = attempt.windowStart;
-    if (now.getTime() - windowStart.getTime() <= RECOVERY_WINDOW_MS) {
-      // Still in window
-      nextFailedCount = attempt.failedCount + 1;
-      nextWindowStart = windowStart;
-    }
-  }
-
-  if (nextFailedCount >= RECOVERY_MAX_FAILURES) {
-    nextLockedUntil = new Date(now.getTime() + RECOVERY_LOCK_MS);
-  }
-
-  await prisma.rateLimitAttempt.upsert({
-    where: { identifier_type: { identifier: key, type: 'recovery' } },
-    create: {
-      identifier: key,
-      type: 'recovery',
-      failedCount: nextFailedCount,
-      windowStart: nextWindowStart,
-      lockedUntil: nextLockedUntil,
-    },
-    update: {
-      failedCount: nextFailedCount,
-      windowStart: nextWindowStart,
-      lockedUntil: nextLockedUntil,
-      updatedAt: now,
-    },
-  });
+  await checkAndRecordRateLimit(username.toLowerCase(), 'recovery');
 }
 
 async function clearRecoveryFailures(username: string) {
-  const key = username.toLowerCase();
-  await prisma.rateLimitAttempt.deleteMany({
-    where: { identifier: key, type: 'recovery' },
-  });
+  await clearRateLimitFailures(username, 'recovery');
 }
 
 function assertRecord(data: unknown): asserts data is Record<string, unknown> {
@@ -497,6 +527,7 @@ export const setupValidator = createServerFn({ method: 'POST' })
 
     const hashed = hashPassword(data.password);
     const recoveryQuestion = normalizeRecoveryQuestion(data.recovery_question);
+    const recoveryQuestionHash = hashRecoveryQuestion(recoveryQuestion);
     const recoveryAnswerHash = hashPassword(normalizeRecoveryAnswer(data.recovery_answer));
 
     try {
@@ -505,7 +536,7 @@ export const setupValidator = createServerFn({ method: 'POST' })
         data: {
           username: trimmedUsername,
           password: hashed,
-          recovery_question: recoveryQuestion,
+          recovery_question: recoveryQuestionHash,
           recovery_phrase_hash: recoveryAnswerHash,
           password_changed: true,
           must_setup: false,
@@ -530,7 +561,7 @@ export const setupValidator = createServerFn({ method: 'POST' })
 
     await setSession(user.id);
 
-    return { success: true };
+    return { success: true, role: user.role };
   });
 
 // Admin-only: change the current administrator password after verifying the old one
@@ -628,11 +659,15 @@ export const changeAdminRecoveryPhraseFn = createServerFn({ method: 'POST' })
     assertRecoveryQuestion(data.recovery_question);
     assertRecoveryAnswer(data.recovery_answer);
 
+    const recoveryQuestion = normalizeRecoveryQuestion(data.recovery_question);
+    const recoveryQuestionHash = hashRecoveryQuestion(recoveryQuestion);
+    const recoveryAnswerHash = hashPassword(normalizeRecoveryAnswer(data.recovery_answer));
+
     await prisma.member.update({
       where: { id: admin.id },
       data: {
-        recovery_question: normalizeRecoveryQuestion(data.recovery_question),
-        recovery_phrase_hash: hashPassword(normalizeRecoveryAnswer(data.recovery_answer)),
+        recovery_question: recoveryQuestionHash,
+        recovery_phrase_hash: recoveryAnswerHash,
       },
     });
 
@@ -662,21 +697,10 @@ export const getRecoveryQuestionFn = createServerFn({ method: 'GET' })
   })
   .handler(async ({ data }) => {
     const username = data.username.trim().toLowerCase();
-    const member = await prisma.member.findUnique({
-      where: { username },
-      select: {
-        recovery_question: true,
-        recovery_phrase_hash: true,
-      },
-    });
-
-    if (!member?.recovery_phrase_hash) {
-      return { question: null };
-    }
-
-    return {
-      question: member.recovery_question || DEFAULT_RECOVERY_QUESTION,
-    };
+    await checkRateLimitAllowed(username, 'recovery');
+    // Generic response: recoverPasswordFn performs the real validation without
+    // revealing whether the username exists or recovery is configured.
+    return { hasRecovery: true };
   });
 
 export const recoverPasswordFn = createServerFn({ method: 'POST' })
@@ -701,15 +725,24 @@ export const recoverPasswordFn = createServerFn({ method: 'POST' })
         password: true,
         recovery_question: true,
         recovery_phrase_hash: true,
+        role: {
+          select: {
+            role: true,
+          },
+        },
       },
     });
 
-    if (member?.recovery_question) {
+    // Check if member has recovery configured (recovery_question hash exists)
+    const hasRecoveryConfigured = !!member?.recovery_question;
+
+    if (hasRecoveryConfigured) {
       assertRecoveryAnswer(data.recovery_answer);
     }
 
     // Always verify recovery answer (constant-time using dummy hash for non-existent users)
-    const storedRecoveryHash = member?.recovery_phrase_hash ?? DUMMY_PASSWORD_HASH;
+    const dummyRecoveryHash = generateDummyPasswordHash();
+    const storedRecoveryHash = member?.recovery_phrase_hash ?? dummyRecoveryHash;
     const isValidRecovery =
       verifyPassword(normalizeRecoveryAnswer(data.recovery_answer), storedRecoveryHash) ||
       verifyPassword(normalizeLegacyRecoveryPhrase(data.recovery_answer), storedRecoveryHash);
@@ -751,7 +784,7 @@ export const recoverPasswordFn = createServerFn({ method: 'POST' })
 
     await setSession(member.id);
 
-    return { success: true };
+    return { success: true, role: member.role?.role ?? 'user' };
   });
 
 export const loginFn = createServerFn({ method: 'POST' })
@@ -774,11 +807,17 @@ export const loginFn = createServerFn({ method: 'POST' })
         password: true,
         password_changed: true,
         must_setup: true,
+        role: {
+          select: {
+            role: true,
+          },
+        },
       },
     });
 
     // Always verify password (constant-time using dummy hash for non-existent users)
-    const passwordHash = member?.password ?? DUMMY_PASSWORD_HASH;
+    const dummyPasswordHash = generateDummyPasswordHash();
+    const passwordHash = member?.password ?? dummyPasswordHash;
     const isValid = verifyPassword(data.password, passwordHash);
 
     if (!member || !isValid) {
@@ -795,12 +834,31 @@ export const loginFn = createServerFn({ method: 'POST' })
     return {
       success: true,
       mustSetup: member.must_setup || !member.password_changed,
+      role: member.role?.role ?? 'user',
     };
   });
 
 export const logoutFn = createServerFn({ method: 'POST' })
   .handler(async () => {
     await destroySession();
+    return { success: true };
+  });
+
+export const resetLocalDatabaseFn = createServerFn({ method: 'POST' })
+  .handler(async () => {
+    if (!import.meta.env.DEV || process.env.GESTORE_PUB_ENABLE_DEV_RESET !== 'true') {
+      throw new Error('Reset database non abilitato.');
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.session.deleteMany();
+      await tx.rateLimitAttempt.deleteMany();
+      await tx.attendance.deleteMany();
+      await tx.userRole.deleteMany();
+      await tx.member.deleteMany();
+    });
+    await destroySession();
+
     return { success: true };
   });
 
@@ -821,6 +879,9 @@ export const getAllMembersFn = createServerFn({ method: 'GET' })
   .handler(async () => {
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
+
+    // Rate limit admin requests
+    await assertAdminAllowed(user.id, 'general');
 
     const members = await prisma.member.findMany({
       where: { role: { is: { role: 'user' } } },
@@ -848,6 +909,9 @@ export const getCheckInMembersFn = createServerFn({ method: 'GET' })
   .handler(async () => {
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
+
+    // Rate limit admin requests
+    await assertAdminAllowed(user.id, 'general');
 
     const members = await prisma.member.findMany({
       where: { role: { is: { role: 'user' } } },
@@ -888,6 +952,9 @@ export const createMemberFn = createServerFn({ method: 'POST' })
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
 
+    // Rate limit admin requests (sensitive operation)
+    await assertAdminAllowed(user.id, 'sensitive');
+
     // Normalize input
     const firstName = data.first_name.trim();
     const lastName = data.last_name.trim();
@@ -895,6 +962,11 @@ export const createMemberFn = createServerFn({ method: 'POST' })
 
     if (!firstName || !lastName || !memberNumber) {
       throw new Error('Tutti i campi sono obbligatori');
+    }
+
+    // Validate member_number format (alphanumeric, hyphens, underscores only)
+    if (!/^[A-Z0-9_-]+$/i.test(memberNumber)) {
+      throw new Error('Il numero tessera può contenere solo lettere, numeri, trattini e underscore');
     }
 
     // Auto-generate username: nome_cognome
@@ -912,22 +984,30 @@ export const createMemberFn = createServerFn({ method: 'POST' })
       counter++;
     }
 
-    // Check uniqueness of member number
-    const numberExists = await prisma.member.findUnique({
-      where: { member_number: memberNumber },
-    });
-    if (numberExists) {
-      throw new Error('Questo numero tessera è già in uso');
-    }
-
     const securePassword = generateTemporaryPassword();
 
     const joinedAt = data.start_date ? new Date(data.start_date) : new Date();
     const expiryDate = new Date(joinedAt.getTime() + 365 * 24 * 60 * 60 * 1000); // +365 days
 
-    let newMember;
-    try {
-      newMember = await prisma.member.create({
+    // Use transaction to atomically check uniqueness and create member
+    const newMember = await prisma.$transaction(async (tx) => {
+      // Check uniqueness of member number within transaction
+      const numberExists = await tx.member.findUnique({
+        where: { member_number: memberNumber },
+      });
+      if (numberExists) {
+        throw new Error('Questo numero tessera è già in uso');
+      }
+
+      // Double-check username uniqueness within transaction
+      const usernameExists = await tx.member.findUnique({
+        where: { username: finalUsername },
+      });
+      if (usernameExists) {
+        throw new Error('Username già in uso, riprova la registrazione.');
+      }
+
+      return await tx.member.create({
         data: {
           first_name: firstName,
           last_name: lastName,
@@ -946,22 +1026,7 @@ export const createMemberFn = createServerFn({ method: 'POST' })
           },
         },
       });
-    } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        if (uniqueTargetIncludes(error, 'member_number')) {
-          throw new Error('Questo numero tessera è già in uso');
-        }
-
-        if (uniqueTargetIncludes(error, 'username')) {
-          throw new Error('Username già in uso, riprova la registrazione.');
-        }
-
-        if (uniqueTargetIncludes(error, 'qr_token')) {
-          throw new Error('Errore generazione QR, riprova la registrazione.');
-        }
-      }
-      throw error;
-    }
+    });
 
     return {
       success: true,
@@ -989,6 +1054,9 @@ export const renewMembershipFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
+
+    // Rate limit admin requests
+    await assertAdminAllowed(user.id, 'general');
 
     const member = await prisma.member.findUnique({
       where: { id: data.member_id },
@@ -1029,6 +1097,9 @@ export const deleteMemberFn = createServerFn({ method: 'POST' })
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
 
+    // Rate limit admin requests (sensitive operation)
+    await assertAdminAllowed(user.id, 'sensitive');
+
     if (user.id === data.member_id) {
       throw new Error('Non puoi eliminare il tuo stesso account amministratore');
     }
@@ -1050,24 +1121,35 @@ export const deleteMemberFn = createServerFn({ method: 'POST' })
 export const registerAttendanceFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => {
     assertRecord(data);
-    return {
-      member_id: requiredString(data, 'member_id', 120),
-    };
+    const identifier = requiredString(data, 'identifier', 120);
+    return { identifier };
   })
   .handler(async ({ data }) => {
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
 
-    // Manual check-in passes the member id; QR scans pass the opaque qr_token.
-    // Use unique lookups instead of a broad OR query to keep check-in snappy.
-    const memberById = await prisma.member.findUnique({
-      where: { id: data.member_id },
-      include: { role: true },
-    });
-    const member = memberById ?? await prisma.member.findUnique({
-      where: { qr_token: data.member_id },
-      include: { role: true },
-    });
+    // Rate limit admin requests
+    await assertAdminAllowed(user.id, 'general');
+
+    // Determine if input is a UUID (member_id) or base64url (qr_token)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.identifier);
+
+    let member;
+    if (isUuid) {
+      member = await prisma.member.findUnique({
+        where: { id: data.identifier },
+        include: { role: true },
+      });
+    } else {
+      // Validate qr_token format (base64url, 43 chars for 32 bytes)
+      if (!/^[A-Za-z0-9_-]{43}$/.test(data.identifier)) {
+        throw new Error('Formato identificatore non valido');
+      }
+      member = await prisma.member.findUnique({
+        where: { qr_token: data.identifier },
+        include: { role: true },
+      });
+    }
 
     if (!member) {
       throw new Error('Membro non registrato o codice QR non valido');
@@ -1087,44 +1169,22 @@ export const registerAttendanceFn = createServerFn({ method: 'POST' })
       throw new Error(`Tessera scaduta il ${member.expiry_date.toLocaleDateString('it-IT')}`);
     }
 
-    // Prevent duplicate attendance for today.
+    // Prevent duplicate attendance for today - use transaction with unique constraint
     const checkInDay = getLocalDateKey(today);
-    const duplicate = await prisma.attendance.findUnique({
-      where: {
-        member_id_check_in_day: {
-          member_id: member.id,
-          check_in_day: checkInDay,
-        },
-      },
-    });
 
-    if (duplicate) {
-      return {
-        success: true,
-        alreadyCheckedIn: true,
-        member: {
-          id: member.id,
-          first_name: member.first_name,
-          last_name: member.last_name,
-          member_number: member.member_number,
-        },
-      };
-    }
-
-    // Register attendance
-    try {
-      await prisma.attendance.create({
-        data: {
-          member_id: member.id,
-          check_in_time: today,
-          check_in_day: checkInDay,
-          member_first_name: member.first_name,
-          member_last_name: member.last_name,
-          member_number: member.member_number,
+    // Use transaction to atomically check and create attendance
+    const result = await prisma.$transaction(async (tx) => {
+      // Check for existing attendance within transaction
+      const existing = await tx.attendance.findUnique({
+        where: {
+          member_id_check_in_day: {
+            member_id: member.id,
+            check_in_day: checkInDay,
+          },
         },
       });
-    } catch (error) {
-      if (isUniqueConstraintError(error) && uniqueTargetIncludes(error, 'check_in_day')) {
+
+      if (existing) {
         return {
           success: true,
           alreadyCheckedIn: true,
@@ -1132,23 +1192,37 @@ export const registerAttendanceFn = createServerFn({ method: 'POST' })
             id: member.id,
             first_name: member.first_name,
             last_name: member.last_name,
-            member_number: member.member_number,
+            member_number: member.member_number ?? '',
           },
         };
       }
-      throw error;
-    }
 
-    return {
-      success: true,
-      alreadyCheckedIn: false,
-      member: {
-        id: member.id,
-        first_name: member.first_name,
-        last_name: member.last_name,
-        member_number: member.member_number,
-      },
-    };
+      // Create attendance record
+      await tx.attendance.create({
+        data: {
+          member_id: member.id,
+          check_in_time: today,
+          check_in_day: checkInDay,
+          member_first_name: member.first_name,
+          member_last_name: member.last_name,
+          member_number: member.member_number ?? '',
+          member_was_deleted: false,
+        },
+      });
+
+      return {
+        success: true,
+        alreadyCheckedIn: false,
+        member: {
+          id: member.id,
+          first_name: member.first_name,
+          last_name: member.last_name,
+          member_number: member.member_number ?? '',
+        },
+      };
+    });
+
+    return result;
   });
 
 // Admin-guarded: Get today's attendance logs
@@ -1156,6 +1230,9 @@ export const getTodayAttendanceFn = createServerFn({ method: 'GET' })
   .handler(async () => {
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
+
+    // Rate limit admin requests
+    await assertAdminAllowed(user.id, 'general');
 
     const todayKey = getLocalDateKey();
 
@@ -1192,6 +1269,9 @@ export const getAttendanceLogsFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
+
+    // Rate limit admin requests
+    await assertAdminAllowed(user.id, 'general');
 
     const today = new Date();
     const selectedDateKey = data.date ? parseDateKey(data.date) : undefined;
@@ -1241,6 +1321,9 @@ export const getMonthlySummaryFn = createServerFn({ method: 'GET' })
   .handler(async () => {
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
+
+    // Rate limit admin requests
+    await assertAdminAllowed(user.id, 'general');
 
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1360,6 +1443,9 @@ export const deleteAttendanceFn = createServerFn({ method: 'POST' })
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
 
+    // Rate limit admin requests (sensitive operation)
+    await assertAdminAllowed(user.id, 'sensitive');
+
     await prisma.attendance.delete({
       where: { id: data.attendance_id },
     });
@@ -1371,6 +1457,9 @@ export const exportBackupFn = createServerFn({ method: 'GET' })
   .handler(async () => {
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
+
+    // Rate limit admin requests (sensitive operation)
+    await assertAdminAllowed(user.id, 'sensitive');
 
     const [members, attendances] = await Promise.all([
       prisma.member.findMany({
@@ -1516,6 +1605,9 @@ export const restoreBackupFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
+
+    // Rate limit admin requests (sensitive operation)
+    await assertAdminAllowed(user.id, 'sensitive');
 
     let parsed: unknown;
     try {

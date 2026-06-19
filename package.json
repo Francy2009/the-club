@@ -6,8 +6,10 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 3000 --host",
+    "dev": "vite dev --port 3000 --host 127.0.0.1",
+    "dev:reset": "GESTORE_PUB_ENABLE_DEV_RESET=true VITE_GESTORE_PUB_ENABLE_DEV_RESET=true vite dev --port 3000 --host 127.0.0.1",
     "dev:lan": "vite dev --port 3000 --host 0.0.0.0",
+    "typecheck": "tsc --noEmit",
     "build": "vite build",
     "build:tauri": "vite build --mode tauri && node scripts/fix-tauri-assets.mjs",
     "preview": "vite preview",
@@ -45,7 +47,7 @@
     "jsdom": "28.1.0",
     "prisma": "6.19.3",
     "typescript": "6.0.3",
-    "vite": "8.0.14",
+    "vite": "^8.0.16",
     "vitest": "4.1.7"
   },
   "pnpm": {

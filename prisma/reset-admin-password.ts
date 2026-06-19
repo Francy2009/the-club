@@ -114,9 +114,10 @@ async function main() {
   console.log('Reset admin completato.');
   console.log(`Username: ${admin.username}`);
   if (generatedPassword) {
+    console.log('Una password temporanea sicura è stata generata. Salvatela ora; non verrà mostrata di nuovo.');
     console.log(`Password temporanea: ${temporaryPassword}`);
   } else {
-    console.log('Password temporanea caricata da ADMIN_RESET_PASSWORD.');
+    console.log('Password temporanea caricata da ADMIN_RESET_PASSWORD environment variable.');
   }
   console.log('Accedi e imposta subito una nuova password dalla schermata iniziale.');
 }

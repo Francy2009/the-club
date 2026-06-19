@@ -32,8 +32,6 @@ function generateTemporaryPassword(length = 16): string {
 }
 
 async function main() {
-  console.log('Seeding database...');
-
   // Clean existing admins just in case
   const existingAdmin = await prisma.member.findUnique({
     where: { username: 'admin' },
@@ -75,12 +73,13 @@ async function main() {
     },
   });
 
-  console.log('Seed completed successfully!');
+  console.log('Seed completed successfully.');
   console.log('Created Admin:', admin.username);
   if (generatedInitialPassword) {
-    console.log(`Generated initial admin password: ${initialPassword}`);
+    console.log('A secure initial admin password was generated. Save it now; it will not be shown again.');
+    console.log(`Initial admin password: ${initialPassword}`);
   } else {
-    console.log('Initial admin password loaded from ADMIN_INITIAL_PASSWORD.');
+    console.log('Initial admin password loaded from ADMIN_INITIAL_PASSWORD environment variable.');
   }
 }
 

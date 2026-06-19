@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useRouter } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { getAttendanceLogsFn, deleteAttendanceFn } from '../../lib/api'
 import { jsPDF } from 'jspdf'
@@ -9,7 +9,7 @@ export const Route = createFileRoute('/admin/presenze')({
   component: AttendanceHistory,
   beforeLoad: async ({ context }) => {
     if (!context.user || context.user.role !== 'admin') {
-      throw Route.navigate({ to: '/', replace: true })
+      throw redirect({ to: '/', replace: true })
     }
   },
 })
