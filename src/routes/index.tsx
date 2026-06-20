@@ -36,14 +36,14 @@ function App() {
     <main className="page-wrap pb-8 pt-4 sm:px-4 sm:pt-14">
       {/* Hero Welcome Card */}
       <section className="island-shell rise-in relative overflow-hidden rounded-2xl px-5 py-7 sm:rounded-[2rem] sm:px-10 sm:py-16">
-        <p className="island-kicker mb-3">Club Privato Locale</p>
+        <p className="island-kicker mb-3">Gestione Associativa Locale</p>
         <h1 className="display-title mb-4 max-w-3xl text-[2rem] leading-[1.05] font-bold tracking-tight text-[var(--sea-ink)] sm:mb-5 sm:text-6xl">
-          {user ? `Benvenuto, ${user.first_name}!` : 'Benvenuto al Club Privato'}
+          {user ? `Ciao, ${user.first_name}` : 'The Club'}
         </h1>
         <p className="mb-6 max-w-2xl text-sm leading-6 text-[var(--sea-ink-soft)] sm:mb-8 sm:text-lg">
-          {user 
-            ? 'Gestisci la tua iscrizione, mostra il tuo QR Code all\'ingresso o gestisci le presenze e i membri se sei un amministratore.'
-            : 'Questa è l\'applicazione locale per la gestione degli accessi e dei membri del club. Effettua l\'accesso per vedere la tua tessera.'}
+          {user
+            ? 'Accedi alla tua tessera digitale, controlla la scadenza dell\'abbonamento o gestisci soci e presenze dalla console amministrativa.'
+            : 'Software locale per la gestione di soci, tessere QR, ingressi e presenze. I dati restano sul computer del club.'}
         </p>
 
         <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3">
@@ -55,14 +55,14 @@ function App() {
                   className="mobile-action inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/20 px-6 py-3 text-sm font-semibold text-rose-500 no-underline transition hover:-translate-y-0.5 hover:bg-rose-500/30 sm:w-auto sm:rounded-full"
                 >
                   <QrCode className="w-4 h-4" />
-                  Avvia QR Scanner
+                  Scanner ingressi
                 </Link>
                 <Link
                   to="/admin"
                   className="mobile-action inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-[rgba(23,58,64,0.2)] bg-white/50 px-6 py-3 text-sm font-semibold text-[var(--sea-ink)] no-underline transition hover:-translate-y-0.5 hover:border-[rgba(23,58,64,0.35)] sm:w-auto sm:rounded-full"
                 >
                   <ClipboardList className="w-4 h-4" />
-                  Pannello Amministrazione
+                  Amministrazione
                 </Link>
               </>
             ) : (
@@ -71,7 +71,7 @@ function App() {
                 className="mobile-action inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/20 px-6 py-3 text-sm font-semibold text-emerald-500 no-underline transition hover:-translate-y-0.5 hover:bg-emerald-500/30 sm:w-auto sm:rounded-full"
               >
                 <QrCode className="w-4 h-4" />
-                Visualizza Tessera QR
+                La mia tessera
               </Link>
             )
           ) : (
@@ -80,7 +80,7 @@ function App() {
               className="mobile-action inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-[rgba(23,58,64,0.2)] bg-white/60 px-6 py-3 text-sm font-semibold text-[var(--sea-ink)] no-underline transition hover:-translate-y-0.5 hover:border-[rgba(23,58,64,0.35)] sm:w-auto sm:rounded-full"
             >
               <LogIn className="w-4 h-4" />
-              Accedi con le tue Credenziali
+              Accedi
             </Link>
           )}
         </div>
@@ -218,20 +218,20 @@ function App() {
         <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
             {
-              title: 'Gestione Iscritti Rapida',
-              desc: 'Gli amministratori possono aggiungere membri, generare tessere QR e ristamparle quando serve.',
+              title: 'Anagrafica e rinnovi',
+              desc: 'Registra i soci, gestisci le scadenze degli abbonamenti e genera tessere QR pronte per la stampa.',
               icon: PlusCircle,
               color: 'text-rose-500',
             },
             {
-              title: 'Rilevamento QR ad Alta Velocità',
-              desc: 'Pagina scanner integrata per registrare ingressi e salvare presenze persistenti consultabili per giorno.',
+              title: 'Ingressi con QR',
+              desc: 'Registra le presenze tramite scanner integrato e consulta lo storico per giorno o periodo.',
               icon: QrCode,
               color: 'text-amber-500',
             },
             {
-              title: 'Zero Cloud, Massima Sicurezza',
-              desc: 'Tutto funziona in locale. Dati soci e storico presenze restano sul computer del club.',
+              title: 'Dati in locale',
+              desc: 'Nessun cloud obbligatorio: soci, presenze e credenziali restano sul dispositivo del club.',
               icon: Shield,
               color: 'text-emerald-500',
             },
