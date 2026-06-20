@@ -306,11 +306,11 @@ function ScannerPage() {
             cameraConfig = backCamera?.id || cameras[cameras.length - 1].id
           } else {
             // Fallback to environment facingMode constraint
-            cameraConfig = { facingMode: { ideal: 'environment' } }
+            cameraConfig = { facingMode: 'environment' }
           }
         } catch {
           // If getCameras fails, try with facingMode constraint
-          cameraConfig = { facingMode: { ideal: 'environment' } }
+          cameraConfig = { facingMode: 'environment' }
         }
 
         if (cancelled) return
