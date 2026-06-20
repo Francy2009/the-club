@@ -110,6 +110,19 @@ export async function resetDesktopDatabase() {
   localStorage.removeItem(LEGACY_DB_KEY)
 }
 
+export async function cleanupAppData(): Promise<string | null> {
+  const invoke = getTauriInvoke()
+
+  if (invoke) {
+    return await invoke<string>('cleanup_app_data')
+  }
+
+  // Web fallback: just clear localStorage
+  localStorage.removeItem(DB_KEY)
+  localStorage.removeItem(LEGACY_DB_KEY)
+  return 'Dati locali (localStorage) rimossi.'
+}
+
 export async function resetLocalDatabaseFn() {
   await resetDesktopDatabase()
   return { success: true }

@@ -1,6 +1,6 @@
 {
   "name": "the-club",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "private": true,
   "type": "module",
   "imports": {
@@ -26,7 +26,7 @@
     "@tanstack/react-router-ssr-query": "1.167.1",
     "@tanstack/react-start": "1.168.26",
     "@tanstack/router-plugin": "1.168.18",
-    "@yudiel/react-qr-scanner": "2.6.0",
+    "html5-qrcode": "^2.3.8",
     "jspdf": "4.2.1",
     "lucide-react": "0.545.0",
     "qrcode.react": "4.2.0",

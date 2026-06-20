@@ -14,9 +14,11 @@ import {
   RefreshCw,
   Settings,
   ShieldCheck,
+  Trash2,
   Upload,
 } from 'lucide-react'
 import { changeAdminPasswordFn, changeAdminRecoveryPhraseFn, exportBackupFn, restoreBackupFn } from '../../lib/api'
+import { cleanupAppData } from '../../lib/desktop-api'
 import {
   chooseExportDirectory,
   getExportPreference,
@@ -50,6 +52,7 @@ function AdminSettings() {
   const [newRecoveryAnswer, setNewRecoveryAnswer] = useState('')
   const [confirmRecoveryAnswer, setConfirmRecoveryAnswer] = useState('')
   const [restoreConfirm, setRestoreConfirm] = useState('')
+  const [cleanupConfirm, setCleanupConfirm] = useState('')
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -227,6 +230,34 @@ function AdminSettings() {
       }
     } catch (error: any) {
       setErrorMsg(error?.message || 'Errore durante il ripristino del backup.')
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  const handleCleanupData = async () => {
+    clearMessages()
+
+    if (cleanupConfirm !== 'ELIMINA') {
+      setErrorMsg('Scrivi ELIMINA nel campo di conferma per rimuovere tutti i dati locali.')
+      return
+    }
+
+    setBusyAction('cleanup')
+    try {
+      const result = await cleanupAppData()
+      setCleanupConfirm('')
+      setSuccessMsg(result || 'Dati locali rimossi. L\'app verrà ricaricata.')
+
+      // Clear localStorage as well and reload after a short delay
+      localStorage.removeItem('the-club:desktop-db')
+      localStorage.removeItem('gestore-pub:desktop-db')
+
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 2000)
+    } catch (error: any) {
+      setErrorMsg(error?.message || 'Errore durante la rimozione dei dati locali.')
     } finally {
       setBusyAction(null)
     }
@@ -599,6 +630,53 @@ function AdminSettings() {
               >
                 <Upload className="h-4 w-4" />
                 {busyAction === 'restore' ? 'Ripristino...' : 'Carica e ripristina JSON'}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="island-shell rounded-2xl p-5 sm:rounded-[2rem] sm:p-6 lg:col-span-2">
+          <div className="relative mb-5 flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10 text-red-600">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="display-title m-0 text-xl font-bold tracking-tight text-[var(--sea-ink)]">
+                Rimuovi dati locali
+              </h2>
+              <p className="mt-1 text-xs font-semibold leading-relaxed text-[var(--sea-ink-soft)]">
+                Elimina definitivamente il database locale e tutti i file dati dell'app su questo dispositivo. Utile prima di disinstallare o per un reset completo.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs font-semibold leading-relaxed text-red-700 dark:text-red-200">
+              Questa operazione cancella tutti i soci, presenze e impostazioni salvate su questo dispositivo. Su desktop rimuove la cartella dati dell'app. Fai un backup prima di procedere.
+            </div>
+
+            <div>
+              <label htmlFor="cleanup-confirm" className="mb-2 block text-xs font-bold uppercase text-[var(--sea-ink-soft)]">
+                Conferma eliminazione
+              </label>
+              <input
+                id="cleanup-confirm"
+                type="text"
+                value={cleanupConfirm}
+                onChange={(event) => setCleanupConfirm(event.target.value)}
+                placeholder="Scrivi ELIMINA"
+                disabled={isBusy}
+                className="block w-full rounded-xl border border-[var(--line)] bg-white/50 px-4 py-3 text-sm font-bold text-[var(--sea-ink)] focus:border-red-500/50 focus:outline-none"
+              />
+
+              <button
+                type="button"
+                onClick={handleCleanupData}
+                disabled={isBusy}
+                className="mobile-action mt-3 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-xs font-extrabold text-white shadow-md shadow-red-500/20 transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" />
+                {busyAction === 'cleanup' ? 'Rimozione...' : 'Elimina tutti i dati locali'}
               </button>
             </div>
           </div>

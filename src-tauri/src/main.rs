@@ -138,6 +138,66 @@ fn reset_desktop_db(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Removes the entire app data directory (database, temp files, etc.).
+/// Called by the NSIS uninstaller on Windows and by the .deb postrm script on Linux,
+/// or manually from the settings UI as a fallback for macOS/AppImage.
+#[tauri::command]
+fn cleanup_app_data(app: AppHandle) -> Result<String, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("Impossibile trovare la cartella dati dell'app: {error}"))?;
+
+    if !app_data_dir.exists() {
+        return Ok("Nessuna cartella dati da rimuovere.".to_string());
+    }
+
+    // Remove all contents inside the app data directory
+    let entries = fs::read_dir(&app_data_dir)
+        .map_err(|error| format!("Impossibile leggere la cartella dati: {error}"))?;
+
+    let mut removed: Vec<String> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
+
+    for entry in entries {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(e) => {
+                errors.push(format!("Errore lettura elemento: {e}"));
+                continue;
+            }
+        };
+
+        let path = entry.path();
+        let path_str = path.to_string_lossy().into_owned();
+
+        let result = if path.is_dir() {
+            fs::remove_dir_all(&path)
+        } else {
+            fs::remove_file(&path)
+        };
+
+        if let Err(e) = result {
+            errors.push(format!("{path_str}: {e}"));
+        } else {
+            removed.push(path_str);
+        }
+    }
+
+    // Try to remove the now-empty directory itself
+    let _ = fs::remove_dir(&app_data_dir);
+
+    if errors.is_empty() {
+        Ok(format!("Pulizia completata. {} file/cartelle rimossi.", removed.len()))
+    } else {
+        Err(format!(
+            "Pulizia parziale. Rimossi: {}. Errori: {}",
+            removed.len(),
+            errors.join("; ")
+        ))
+    }
+}
+
 fn sanitize_filename(filename: &str) -> String {
     let sanitized = filename
         .chars()
@@ -296,6 +356,7 @@ fn main() {
             read_desktop_db,
             write_desktop_db,
             reset_desktop_db,
+            cleanup_app_data,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -7,6 +7,17 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.24] - 2026-06-20
+
+### Corretto
+- Sostituita la libreria scanner QR (`@yudiel/react-qr-scanner` → `html5-qrcode`) per risolvere il malfunzionamento su Windows e altri sistemi desktop.
+
+### Aggiunto
+- Comando backend Tauri `cleanup_app_data` per la rimozione completa dei dati locali.
+- Template NSIS Windows che elimina automaticamente la cartella dati dell'app durante la disinstallazione.
+- Script `postrm.sh` per la pulizia dei dati su disinstallazione del pacchetto .deb Linux.
+- Sezione "Rimuovi dati locali" nelle impostazioni admin per pulizia manuale (fallback per macOS e AppImage).
+
 ## [1.0.23] - 2026-06-20
 
 ### Modificato

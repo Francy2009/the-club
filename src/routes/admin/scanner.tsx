@@ -1,8 +1,7 @@
 import { createFileRoute, Link, redirect, useLoaderData } from '@tanstack/react-router'
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { getCheckInMembersFn, getTodayAttendanceFn, registerAttendanceFn } from '../../lib/api'
-import { Scanner } from '@yudiel/react-qr-scanner'
-import type { IDetectedBarcode, IScannerError } from '@yudiel/react-qr-scanner'
+import { Html5Qrcode, Html5QrcodeSupportedFormats, type QrcodeSuccessCallback, type QrcodeErrorCallback } from 'html5-qrcode'
 import { QrCode, ArrowLeft, ShieldAlert, CheckCircle2, AlertTriangle, Play, Pause, History, Keyboard, Search, UserCheck, Users, Clock } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/scanner')({
@@ -31,6 +30,8 @@ interface ScanLog {
   message: string
   time: string
 }
+
+const SCANNER_ELEMENT_ID = 'qr-reader-container'
 
 function ScannerPage() {
   const { members, todayLogs } = useLoaderData({ from: '/admin/scanner' })
@@ -61,6 +62,11 @@ function ScannerPage() {
   const lastScanTimeRef = useRef<number>(0)
   const lastScanValueRef = useRef<string>('')
  
+  // Scanner instance ref
+  const scannerRef = useRef<Html5Qrcode | null>(null)
+  const activeRef = useRef(active)
+  activeRef.current = active
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -192,7 +198,7 @@ function ScannerPage() {
         } else {
           setScanResult({
             status: 'success',
-            message: `Benvenuto! Presenza registrata con successo.`,
+            message: `Presenza registrata con successo.`,
             name: memberName,
             memberNumber: memberNum,
           })
@@ -249,30 +255,136 @@ function ScannerPage() {
       }
     }
   }
- 
-  const handleScan = async (detectedCodes: IDetectedBarcode[]) => {
-    if (detectedCodes.length === 0 || !active) return
+
+  // Stable callback refs for the scanner
+  const processCodeRef = useRef(processCode)
+  processCodeRef.current = processCode
+
+  const handleScanSuccess: QrcodeSuccessCallback = useCallback((decodedText: string) => {
+    if (!activeRef.current) return
     setCameraError(null)
-    await processCode(detectedCodes[0].rawValue, 'scanner')
-  }
+    void processCodeRef.current(decodedText, 'scanner')
+  }, [])
+
+  const handleScanError: QrcodeErrorCallback = useCallback(() => {
+    // Per-frame decode failures are normal (no QR in view) — ignore them.
+    // Only surface real camera errors via the start() promise rejection.
+  }, [])
+
+  // Start / stop the camera scanner based on `active` state
+  useEffect(() => {
+    if (!mounted || !active) return
+
+    let cancelled = false
+    setCameraError(null)
+
+    const startScanner = async () => {
+      try {
+        // Create scanner instance if not already created
+        if (!scannerRef.current) {
+          scannerRef.current = new Html5Qrcode(SCANNER_ELEMENT_ID, {
+            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+            verbose: false,
+          })
+        }
+
+        const scanner = scannerRef.current
+        if (scanner.isScanning) return
+
+        // Try to find the best camera (prefer back/environment camera)
+        let cameraConfig: string | MediaTrackConstraints
+
+        try {
+          const cameras = await Html5Qrcode.getCameras()
+          if (cancelled) return
+
+          if (cameras && cameras.length > 0) {
+            // Prefer back camera by checking labels
+            const backCamera = cameras.find((cam) =>
+              /back|rear|environment|posteriore/i.test(cam.label)
+            )
+            cameraConfig = backCamera?.id || cameras[cameras.length - 1].id
+          } else {
+            // Fallback to environment facingMode constraint
+            cameraConfig = { facingMode: { ideal: 'environment' } }
+          }
+        } catch {
+          // If getCameras fails, try with facingMode constraint
+          cameraConfig = { facingMode: { ideal: 'environment' } }
+        }
+
+        if (cancelled) return
+
+        await scanner.start(
+          cameraConfig,
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+            disableFlip: false,
+          },
+          handleScanSuccess,
+          handleScanError
+        )
+
+        if (cancelled) {
+          await scanner.stop().catch(() => {})
+        }
+      } catch (err: any) {
+        if (cancelled) return
+        console.error('QR Scanner start error:', err)
+        const errStr = String(err?.message || err || '')
+        let message = 'Errore durante l’avvio dello scanner.'
+
+        if (/permission|denied|notallowed/i.test(errStr)) {
+          message = 'Permesso fotocamera negato. Consenti l’accesso alla fotocamera dalle impostazioni di sistema.'
+        } else if (/notfound|no camera|no device|notfounderror/i.test(errStr)) {
+          message = 'Nessuna fotocamera trovata sul dispositivo.'
+        } else if (/in use|already in use|trackstart/i.test(errStr)) {
+          message = 'La fotocamera è già in uso da un’altra applicazione.'
+        } else if (/notreadable|notreadableerror/i.test(errStr)) {
+          message = 'Impossibile accedere alla fotocamera. Potrebbe essere in uso da un’altra app.'
+        } else if (/overconstrained|constraint/i.test(errStr)) {
+          message = 'La fotocamera richiesta non è disponibile. Prova a cambiare dispositivo.'
+        } else if (/notsupported|notsupportederror/i.test(errStr)) {
+          message = 'Scanner non supportato da questo browser.'
+        } else if (errStr) {
+          message = errStr
+        }
+
+        setCameraError(message)
+      }
+    }
+
+    void startScanner()
+
+    return () => {
+      cancelled = true
+      const scanner = scannerRef.current
+      if (scanner && scanner.isScanning) {
+        void scanner.stop().catch(() => {})
+      }
+    }
+  }, [mounted, active, handleScanSuccess, handleScanError])
+
+  // Cleanup scanner on unmount
+  useEffect(() => {
+    return () => {
+      const scanner = scannerRef.current
+      if (scanner) {
+        if (scanner.isScanning) {
+          void scanner.stop().catch(() => {})
+        }
+        scanner.clear()
+        scannerRef.current = null
+      }
+    }
+  }, [])
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     await processCode(manualCode, 'manual')
     setManualCode('')
-  }
-
-  const handleError = (error: IScannerError) => {
-    console.error('QR Scanner Error:', error)
-    const messageByKind: Record<string, string> = {
-      'permission-denied': 'Permesso fotocamera negato. Consenti l’accesso alla camera dal browser.',
-      'no-camera': 'Nessuna fotocamera trovata sul dispositivo.',
-      'in-use': 'La fotocamera è già in uso da un’altra app o scheda.',
-      'insecure-context': 'La fotocamera richiede HTTPS oppure localhost. Su telefono non funziona via semplice http://IP.',
-      overconstrained: 'La fotocamera richiesta non è disponibile. Prova a cambiare camera o dispositivo.',
-      unsupported: 'Scanner non supportato da questo browser.',
-    }
-    setCameraError(messageByKind[error.kind] || error.message || 'Errore durante l’avvio dello scanner.')
   }
 
   if (!mounted) {
@@ -361,35 +473,8 @@ function ScannerPage() {
                     <div className="scanner-target-inner animate-pulse rounded-lg border-2 border-dashed border-rose-500/50" />
                   </div>
                   
-                  <Scanner 
-                    onScan={handleScan} 
-                    onError={handleError}
-                    paused={!active}
-                    formats={['qr_code']}
-                    allowMultiple
-                    scanDelay={1000}
-                    retryDelay={100}
-                    startTimeoutMs={10000}
-                    constraints={{
-                      facingMode: { ideal: 'environment' },
-                      width: { ideal: 1280 },
-                      height: { ideal: 720 },
-                    }}
-                    components={{
-                      finder: true,
-                      torch: true,
-                      zoom: true,
-                    }}
-                    styles={{
-                      container: {
-                        width: '100%',
-                        height: '100%',
-                      },
-                      video: {
-                        objectFit: 'cover',
-                      }
-                    }}
-                  />
+                  {/* html5-qrcode mounts the video element inside this div */}
+                  <div id={SCANNER_ELEMENT_ID} className="w-full h-full" style={{ borderRadius: '0.75rem', overflow: 'hidden' }} />
                 </div>
               ) : (
                 <div className="text-center p-6 text-stone-500">
