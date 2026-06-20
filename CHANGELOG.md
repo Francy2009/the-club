@@ -7,6 +7,11 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.25] - 2026-06-20
+
+### Corretto
+- Risolto l'errore TypeScript nello scanner QR: sostituito `{ facingMode: { ideal: 'environment' } }` con `{ facingMode: 'environment' }` per rispettare il tipo `MediaTrackConstraints`.
+
 ## [1.0.24] - 2026-06-20
 
 ### Corretto
