@@ -7,6 +7,12 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.23] - 2026-06-20
+
+### Modificato
+- Testo della homepage reso più professionale e sobrio.
+- Semplificati i pulsanti di azione principali.
+
 ## [1.0.22] - 2026-06-20
 
 ### Modificato

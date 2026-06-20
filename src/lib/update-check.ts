@@ -67,7 +67,7 @@ function normalizeVersion(version: string) {
   return version.trim().replace(/^v/i, '')
 }
 
-function isVersionNewer(candidate: string, current: string) {
+export function isVersionNewer(candidate: string, current: string) {
   const candidateParts = parseVersion(candidate)
   const currentParts = parseVersion(current)
   if (!candidateParts || !currentParts) return false

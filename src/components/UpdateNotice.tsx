@@ -1,6 +1,6 @@
 import { BellRing, ExternalLink, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { checkForAvailableUpdate, getCurrentAppVersion } from '../lib/update-check'
+import { checkForAvailableUpdate, getCurrentAppVersion, isVersionNewer } from '../lib/update-check'
 import type { AppUpdateInfo } from '../lib/update-check'
 
 const DISMISSED_VERSION_KEY = 'the-club-update-dismissed-version'
@@ -94,19 +94,4 @@ export default function UpdateNotice() {
       console.warn('Controllo aggiornamenti non riuscito:', error)
     }
   }
-}
-
-function isVersionNewer(candidate: string, current: string): boolean {
-  const candidateParts = candidate.split('.').map(Number)
-  const currentParts = current.split('.').map(Number)
-  const maxLength = Math.max(candidateParts.length, currentParts.length)
-
-  for (let index = 0; index < maxLength; index += 1) {
-    const candidatePart = candidateParts[index] ?? 0
-    const currentPart = currentParts[index] ?? 0
-    if (candidatePart > currentPart) return true
-    if (candidatePart < currentPart) return false
-  }
-
-  return false
 }
