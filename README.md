@@ -1,6 +1,6 @@
-# Gestore Pub
+# The Club
 
-Gestore Pub è un'applicazione desktop per la gestione di soci, tessere QR,
+The Club è un'applicazione desktop per la gestione di soci, tessere QR,
 presenze, rinnovi, backup e report di un club privato.
 
 È pensata per un utilizzo locale: i dati restano sul computer dell'utente, senza
@@ -37,7 +37,7 @@ verifiche e scelte finali sono state seguite e adattate manualmente.
 
 La versione pronta da usare si scarica dalla pagina:
 
-[GitHub Releases](https://github.com/Francy2009/Gestore-pub/releases)
+[GitHub Releases](https://github.com/Francy2009/The-Club/releases)
 
 Scegli il file adatto al tuo sistema:
 

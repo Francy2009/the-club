@@ -97,16 +97,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'Gestore Pub ${{ github.ref_name }}'
+          releaseName: 'The Club ${{ github.ref_name }}'
           releaseBody: |
-            ## Gestore Pub ${{ github.ref_name }}
+            ## The Club ${{ github.ref_name }}
             
             ### Download
-            - **Windows**: `gestore-pub_${{ github.ref_name }}_windows_x64.msi` / `.exe`
-            - **macOS (Apple Silicon)**: `gestore-pub_${{ github.ref_name }}_macos_aarch64.dmg`
-            - **macOS (Intel)**: `gestore-pub_${{ github.ref_name }}_macos_x64.dmg`
-            - **Linux**: `gestore-pub_${{ github.ref_name }}_linux_amd64.AppImage` / `.deb` / `.rpm`
+            - **Windows**: `the-club_${{ github.ref_name }}_windows_x64.msi` / `.exe`
+            - **macOS (Apple Silicon)**: `the-club_${{ github.ref_name }}_macos_aarch64.dmg`
+            - **macOS (Intel)**: `the-club_${{ github.ref_name }}_macos_x64.dmg`
+            - **Linux**: `the-club_${{ github.ref_name }}_linux_amd64.AppImage` / `.deb` / `.rpm`
             
             ### Changelog
-            Vedi [CHANGELOG.md](https://github.com/Francy2009/Gestore-pub/blob/main/CHANGELOG.md) per i dettagli.
+            Vedi [CHANGELOG.md](https://github.com/Francy2009/The-Club/blob/main/CHANGELOG.md) per i dettagli.
           args: ${{ matrix.args }}

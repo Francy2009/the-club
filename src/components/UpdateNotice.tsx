@@ -3,19 +3,26 @@ import { useEffect, useState } from 'react'
 import { checkForAvailableUpdate, getCurrentAppVersion } from '../lib/update-check'
 import type { AppUpdateInfo } from '../lib/update-check'
 
-const DISMISSED_VERSION_KEY = 'gestore-pub-update-dismissed-version'
+const DISMISSED_VERSION_KEY = 'the-club-update-dismissed-version'
 const FIRST_CHECK_DELAY_MS = 5000
+const CHECK_INTERVAL_MS = 60 * 60 * 1000 // 1 hour
 
 export default function UpdateNotice() {
   const [update, setUpdate] = useState<AppUpdateInfo | null>(null)
   const [hidden, setHidden] = useState(false)
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    const runCheck = () => {
       void checkUpdate()
-    }, FIRST_CHECK_DELAY_MS)
+    }
 
-    return () => window.clearTimeout(timer)
+    const initialTimer = window.setTimeout(runCheck, FIRST_CHECK_DELAY_MS)
+    const intervalTimer = window.setInterval(runCheck, CHECK_INTERVAL_MS)
+
+    return () => {
+      window.clearTimeout(initialTimer)
+      window.clearInterval(intervalTimer)
+    }
   }, [])
 
   if (hidden || !update) return null
@@ -68,11 +75,38 @@ export default function UpdateNotice() {
     try {
       const availableUpdate = await checkForAvailableUpdate()
       if (!availableUpdate) return
-      if (localStorage.getItem(DISMISSED_VERSION_KEY) === availableUpdate.tagName) return
 
-      setUpdate(availableUpdate)
+      const dismissedVersion = localStorage.getItem(DISMISSED_VERSION_KEY)
+      if (dismissedVersion && !isVersionNewer(availableUpdate.version, dismissedVersion)) {
+        return
+      }
+
+      setUpdate((current) => {
+        if (
+          current &&
+          !isVersionNewer(availableUpdate.version, current.version)
+        ) {
+          return current
+        }
+        return availableUpdate
+      })
     } catch (error) {
       console.warn('Controllo aggiornamenti non riuscito:', error)
     }
   }
+}
+
+function isVersionNewer(candidate: string, current: string): boolean {
+  const candidateParts = candidate.split('.').map(Number)
+  const currentParts = current.split('.').map(Number)
+  const maxLength = Math.max(candidateParts.length, currentParts.length)
+
+  for (let index = 0; index < maxLength; index += 1) {
+    const candidatePart = candidateParts[index] ?? 0
+    const currentPart = currentParts[index] ?? 0
+    if (candidatePart > currentPart) return true
+    if (candidatePart < currentPart) return false
+  }
+
+  return false
 }

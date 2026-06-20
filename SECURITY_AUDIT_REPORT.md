@@ -1,4 +1,4 @@
-# Security Audit Report - Gestore Pub
+# Security Audit Report - The Club
 
 **Data Analisi:** 2026-06-19
 **Versione Applicazione:** 1.0.19
@@ -22,7 +22,7 @@
 
 ## 1. Executive Summary
 
-L'applicazione **Gestore Pub** presenta un **livello di sicurezza complessivamente BUONO** per un'applicazione locale di gestione club, con un'architettura moderna basata su TanStack Start che separa chiaramente codice client/server. L'uso di Prisma ORM mitiga efficacemente i rischi di SQL Injection, l'autenticazione utilizza PBKDF2-SHA512 con 310.000 iterazioni (superiore alle raccomandazioni OWASP), e i cookie di sessione sono configurati correttamente (HttpOnly, Secure, SameSite=Strict).
+L'applicazione **The Club** presenta un **livello di sicurezza complessivamente BUONO** per un'applicazione locale di gestione club, con un'architettura moderna basata su TanStack Start che separa chiaramente codice client/server. L'uso di Prisma ORM mitiga efficacemente i rischi di SQL Injection, l'autenticazione utilizza PBKDF2-SHA512 con 310.000 iterazioni (superiore alle raccomandazioni OWASP), e i cookie di sessione sono configurati correttamente (HttpOnly, Secure, SameSite=Strict).
 
 Le vulnerabilità principali identificate nella prima analisi sono state mitigate per lo scenario di consegna previsto: **app desktop locale distribuita tramite GitHub Releases**. Restano aree di miglioramento operative per un uso più maturo: code signing, protezione del filesystem/account OS, backup cifrati, test di sicurezza più estesi e hardening specifico se l'app venisse esposta come servizio web pubblico.
 

@@ -24,7 +24,7 @@ export default function LocalDataResetPanel() {
   const router = useRouter()
   const navigate = useNavigate()
   const [isAvailable, setIsAvailable] = useState(
-    import.meta.env.MODE === 'tauri' || import.meta.env.VITE_GESTORE_PUB_ENABLE_DEV_RESET === 'true',
+    import.meta.env.MODE === 'tauri' || import.meta.env.VITE_THE_CLUB_ENABLE_DEV_RESET === 'true',
   )
   const [confirmingReset, setConfirmingReset] = useState(false)
   const [resetConfirmationText, setResetConfirmationText] = useState('')

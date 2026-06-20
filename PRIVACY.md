@@ -1,4 +1,4 @@
-# Privacy Policy - Gestore Pub
+# Privacy Policy - The Club
 
 **Ultimo aggiornamento**: 19 giugno 2026
 **Versione**: 2.0  
@@ -8,7 +8,7 @@
 
 ## 1. Titolare del Trattamento e Ambito di Applicazione
 
-**Gestore Pub** è un'applicazione **open source, self-hosted, locale** per la gestione di club privati e associazioni.
+**The Club** è un'applicazione **open source, self-hosted, locale** per la gestione di club privati e associazioni.
 
 | Aspetto | Dettaglio |
 |---------|-----------|
@@ -107,15 +107,15 @@ Revoca:        Immediata su logout, cambio password, reset admin, scadenza
 ### 4.2 File Esportati (Export/Backup)
 | Tipo | Destinazione Default | Destinazione Personalizzabile | Contenuto Sensibile |
 |------|---------------------|------------------------------|---------------------|
-| Backup JSON | `~/Downloads/gestore-pub-backup-*.json` | ✅ Cartella scelta via File System Access API | Anagrafica, storico, ruoli, dati recupero non segreti e token QR; **no hash password/recupero** |
-| CSV Soci | `~/Downloads/gestore-pub-soci-*.csv` | ✅ Stessa cartella backup | Anagrafica (no hash, no QR) |
-| CSV Presenze | `~/Downloads/gestore-pub-presenze-*.csv` | ✅ Stessa cartella backup | Storico check-in (no hash) |
+| Backup JSON | `~/Downloads/the-club-backup-*.json` | ✅ Cartella scelta via File System Access API | Anagrafica, storico, ruoli, dati recupero non segreti e token QR; **no hash password/recupero** |
+| CSV Soci | `~/Downloads/the-club-soci-*.csv` | ✅ Stessa cartella backup | Anagrafica (no hash, no QR) |
+| CSV Presenze | `~/Downloads/the-club-presenze-*.csv` | ✅ Stessa cartella backup | Storico check-in (no hash) |
 | PDF Tessere | `~/Downloads/tessera-*.pdf` | ✅ Stessa cartella backup | QR code + dati socio |
 | PDF Report | `~/Downloads/report-*.pdf` | ✅ Stessa cartella backup | Aggregati presenze |
 
 ### 4.3 Preferenze Export (Client-side)
-- Salvate in **localStorage** (`gestore-pub:export-preference`)
-- Handle directory salvato in **IndexedDB** (`gestore-pub-export-settings`)
+- Salvate in **localStorage** (`the-club:export-preference`)
+- Handle directory salvato in **IndexedDB** (`the-club-export-settings`)
 - **Solo browser dell'admin**, non sincronizzate, non inviate al server
 
 ---
@@ -283,8 +283,8 @@ Il titolare (admin club) deve definire e applicare:
 |--------|-------|--------|------|
 | `club_member_session` | Autenticazione utente | 7 giorni (rolling) | **Tecnico strettamente necessario** |
 | `theme` (localStorage) | Preferenza tema UI | Persistente | Preferenza utente |
-| `gestore-pub:export-preference` (localStorage) | Cartella export scelta | Persistente | Preferenza admin |
-| IndexedDB `gestore-pub-export-settings` | Handle directory FS API | Persistente | Funzionalità export |
+| `the-club:export-preference` (localStorage) | Cartella export scelta | Persistente | Preferenza admin |
+| IndexedDB `the-club-export-settings` | Handle directory FS API | Persistente | Funzionalità export |
 
 **Nessun cookie**: analytics, marketing, tracking, terze parti, fingerprinting.
 
@@ -338,5 +338,5 @@ Il titolare (admin club) deve definire e applicare:
 
 ---
 
-**Documento generato per Gestore Pub v2.0+**  
+**Documento generato per The Club v2.0+**  
 *Questa policy descrive il software come distribuito. L'amministratore è responsabile di adattarla alla propria realtà giuridica e operativa.*

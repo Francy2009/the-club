@@ -36,9 +36,9 @@ declare global {
   }
 }
 
-export const DOWNLOAD_SUCCESS_EVENT = 'gestore-pub:download-success'
-const EXPORT_PREF_KEY = 'gestore-pub:export-preference'
-const EXPORT_DB_NAME = 'gestore-pub-export-settings'
+export const DOWNLOAD_SUCCESS_EVENT = 'the-club:download-success'
+const EXPORT_PREF_KEY = 'the-club:export-preference'
+const EXPORT_DB_NAME = 'the-club-export-settings'
 const EXPORT_STORE_NAME = 'handles'
 const EXPORT_DIRECTORY_HANDLE_KEY = 'directory'
 

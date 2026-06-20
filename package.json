@@ -1,6 +1,6 @@
 {
-  "name": "gestore-pub",
-  "version": "1.0.21",
+  "name": "the-club",
+  "version": "1.0.22",
   "private": true,
   "type": "module",
   "imports": {
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000 --host 127.0.0.1",
-    "dev:reset": "GESTORE_PUB_ENABLE_DEV_RESET=true VITE_GESTORE_PUB_ENABLE_DEV_RESET=true vite dev --port 3000 --host 127.0.0.1",
+    "dev:reset": "THE_CLUB_ENABLE_DEV_RESET=true VITE_THE_CLUB_ENABLE_DEV_RESET=true vite dev --port 3000 --host 127.0.0.1",
     "dev:lan": "vite dev --port 3000 --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "build": "vite build",

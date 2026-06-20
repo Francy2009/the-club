@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gestore-pub-static-v2'
+const CACHE_NAME = 'the-club-static-v2'
 const STATIC_ASSETS = ['/manifest.json', '/logo192.png', '/logo512.png', '/favicon.ico']
 
 self.addEventListener('install', (event) => {

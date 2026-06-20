@@ -14,7 +14,7 @@ describe('update check', () => {
       ok: true,
       json: async () => ({
         tag_name: 'v1.0.20-test',
-        html_url: 'https://github.com/Francy2009/Gestore-pub/releases/tag/v1.0.20-test',
+        html_url: 'https://github.com/Francy2009/The-Club/releases/tag/v1.0.20-test',
         draft: false,
         prerelease: false,
       }),
@@ -35,7 +35,7 @@ describe('update check', () => {
       ok: true,
       json: async () => ({
         tag_name: 'v1.0.19',
-        html_url: 'https://github.com/Francy2009/Gestore-pub/releases/tag/v1.0.19',
+        html_url: 'https://github.com/Francy2009/The-Club/releases/tag/v1.0.19',
         draft: false,
         prerelease: false,
       }),

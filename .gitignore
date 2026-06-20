@@ -25,6 +25,8 @@ prisma/dev.db
 # Tauri/Rust build output
 src-tauri/target/
 
-# Local exports/backups
+# Local exports/backups (legacy and current names)
 gestore-pub-backup-*.json
 gestore-pub-*.csv
+the-club-backup-*.json
+the-club-*.csv

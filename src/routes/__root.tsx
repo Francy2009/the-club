@@ -106,14 +106,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       },
       {
         name: 'apple-mobile-web-app-title',
-        content: 'Gestore Pub',
+        content: 'The Club',
       },
       {
         name: 'apple-mobile-web-app-status-bar-style',
         content: 'default',
       },
       {
-        title: 'Gestore Pub - Club Privato',
+        title: 'The Club - Club Privato',
       },
     ],
     links: [
@@ -161,7 +161,7 @@ function RootDocument({ children }: { children: ReactNode }) {
 
       if ('caches' in window) {
         caches.keys()
-          .then((keys) => Promise.all(keys.filter((key) => key.startsWith('gestore-pub-')).map((key) => caches.delete(key))))
+          .then((keys) => Promise.all(keys.filter((key) => key.startsWith('the-club-')).map((key) => caches.delete(key))))
           .catch((error) => {
             console.warn('Cache cleanup failed:', error)
           })

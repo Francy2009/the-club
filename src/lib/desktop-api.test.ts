@@ -2,7 +2,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAllMembersFn, getCurrentUserFn, resetDesktopDatabase, setupValidator, exportBackupFn, restoreBackupFn } from './desktop-api'
 
-const DB_KEY = 'gestore-pub:desktop-db'
+const DB_KEY = 'the-club:desktop-db'
+const LEGACY_DB_KEY = 'gestore-pub:desktop-db'
 type TestTauriInvoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
 
 describe('desktop first launch bootstrap', () => {
@@ -48,7 +49,7 @@ describe('desktop first launch bootstrap', () => {
       __TAURI__?: { core?: { invoke?: TestTauriInvoke } }
     }).__TAURI__ = { core: { invoke: invoke as unknown as TestTauriInvoke } }
 
-    localStorage.setItem(DB_KEY, JSON.stringify({
+    localStorage.setItem(LEGACY_DB_KEY, JSON.stringify({
       version: 1,
       current_user_id: 'admin-id',
       members: [{
@@ -75,6 +76,7 @@ describe('desktop first launch bootstrap', () => {
     expect(user?.username).toBe('admin')
     expect(storedFile).toContain('"username":"admin"')
     expect(localStorage.getItem(DB_KEY)).toBeNull()
+    expect(localStorage.getItem(LEGACY_DB_KEY)).toBeNull()
     expect(invoke).toHaveBeenCalledWith('read_desktop_db')
     expect(invoke).toHaveBeenCalledWith('write_desktop_db', expect.objectContaining({
       contents: expect.any(String),
@@ -204,5 +206,15 @@ describe('desktop backup and restore security and QA', () => {
     expect(currentUser?.username).toBe('admin')
     expect(currentUser?.must_setup).toBe(true)
     expect(currentUser?.password_changed).toBe(false)
+  })
+
+  it('restore accepts backups exported before the rename', async () => {
+    const stdBackup = await exportBackupFn()
+    const backupObj = JSON.parse(JSON.stringify(stdBackup.backup))
+    backupObj.application = 'gestore-pub'
+
+    const result = await restoreBackupFn({ data: { backup: JSON.stringify(backupObj) } })
+
+    expect(result.success).toBe(true)
   })
 })

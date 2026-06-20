@@ -100,7 +100,7 @@ function AdminSettings() {
       const archive = await exportBackupFn()
       const stamp = fileDateStamp(archive.exported_at)
       const saved = await saveTextFile(
-        `gestore-pub-backup-${stamp}.json`,
+        `the-club-backup-${stamp}.json`,
         JSON.stringify(archive.backup, null, 2),
         'application/json;charset=utf-8'
       )
@@ -118,8 +118,8 @@ function AdminSettings() {
     try {
       const archive = await exportBackupFn()
       const stamp = fileDateStamp(archive.exported_at)
-      const firstSaved = await saveTextFile(`gestore-pub-soci-${stamp}.csv`, archive.csv.members, 'text/csv;charset=utf-8')
-      await saveTextFile(`gestore-pub-presenze-${stamp}.csv`, archive.csv.attendances, 'text/csv;charset=utf-8')
+      const firstSaved = await saveTextFile(`the-club-soci-${stamp}.csv`, archive.csv.members, 'text/csv;charset=utf-8')
+      await saveTextFile(`the-club-presenze-${stamp}.csv`, archive.csv.attendances, 'text/csv;charset=utf-8')
       setSuccessMsg(`Esportazione CSV completata ${firstSaved.method === 'folder' ? `in ${firstSaved.directoryName}` : 'in Download'}.`)
     } catch (error: any) {
       setErrorMsg(error?.message || 'Errore durante la creazione dei CSV.')

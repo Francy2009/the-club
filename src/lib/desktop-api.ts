@@ -35,7 +35,10 @@ type DesktopDb = {
   attendances: DesktopAttendance[]
 }
 
-const DB_KEY = 'gestore-pub:desktop-db'
+const DB_KEY = 'the-club:desktop-db'
+const LEGACY_DB_KEY = 'gestore-pub:desktop-db'
+const BACKUP_APPLICATION = 'the-club'
+const LEGACY_BACKUP_APPLICATION = 'gestore-pub'
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/
 const DEFAULT_RECOVERY_QUESTION = 'Qual e la tua risposta di recupero?'
 const MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -60,20 +63,21 @@ function getTauriInvoke(): TauriInvoke | null {
 
 async function readStoredDbRaw(): Promise<{ raw: string | null; source: StoredDbSource }> {
   const invoke = getTauriInvoke()
+  const localRaw = localStorage.getItem(DB_KEY) ?? localStorage.getItem(LEGACY_DB_KEY)
 
   if (invoke) {
     const raw = await invoke<string | null>('read_desktop_db')
     if (raw) return { raw, source: 'tauri-file' }
 
     return {
-      raw: localStorage.getItem(DB_KEY),
-      source: localStorage.getItem(DB_KEY) ? 'legacy-localStorage' : 'empty',
+      raw: localRaw,
+      source: localRaw ? 'legacy-localStorage' : 'empty',
     }
   }
 
   return {
-    raw: localStorage.getItem(DB_KEY),
-    source: localStorage.getItem(DB_KEY) ? 'localStorage' : 'empty',
+    raw: localRaw,
+    source: localRaw ? 'localStorage' : 'empty',
   }
 }
 
@@ -92,6 +96,7 @@ async function persistDb(db: DesktopDb) {
 async function migrateLegacyLocalDb(db: DesktopDb) {
   await persistDb(db)
   localStorage.removeItem(DB_KEY)
+  localStorage.removeItem(LEGACY_DB_KEY)
 }
 
 export async function resetDesktopDatabase() {
@@ -102,6 +107,7 @@ export async function resetDesktopDatabase() {
   }
 
   localStorage.removeItem(DB_KEY)
+  localStorage.removeItem(LEGACY_DB_KEY)
 }
 
 export async function resetLocalDatabaseFn() {
@@ -927,7 +933,7 @@ export async function exportBackupFn() {
     },
   }))
   const backup = {
-    application: 'gestore-pub',
+    application: BACKUP_APPLICATION,
     version: 1,
     exported_at: exportedAt,
     notes: 'Backup standard: contiene anagrafica soci, token QR, ruoli, dati recupero non segreti e storico presenze. NON contiene hash password né hash risposta di recupero.',
@@ -1032,7 +1038,12 @@ export async function restoreBackupFn(args?: FnArgs) {
     throw new Error('Il file selezionato non e un backup JSON valido')
   }
 
-  if (parsed?.application !== 'gestore-pub' || parsed.version !== 1 || !Array.isArray(parsed.data?.members) || !Array.isArray(parsed.data?.attendances)) {
+  if (
+    (parsed?.application !== BACKUP_APPLICATION && parsed?.application !== LEGACY_BACKUP_APPLICATION) ||
+    parsed.version !== 1 ||
+    !Array.isArray(parsed.data?.members) ||
+    !Array.isArray(parsed.data?.attendances)
+  ) {
     throw new Error('Backup non compatibile con questa applicazione')
   }
 

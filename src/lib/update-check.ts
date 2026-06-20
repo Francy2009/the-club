@@ -1,6 +1,6 @@
 declare const __APP_VERSION__: string
 
-const GITHUB_LATEST_RELEASE_API = 'https://api.github.com/repos/Francy2009/Gestore-pub/releases/latest'
+const GITHUB_LATEST_RELEASE_API = 'https://api.github.com/repos/Francy2009/The-Club/releases/latest'
 
 type GitHubReleaseResponse = {
   tag_name?: unknown

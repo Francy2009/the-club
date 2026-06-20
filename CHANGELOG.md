@@ -7,6 +7,16 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.22] - 2026-06-20
+
+### Modificato
+- Rinominato progetto e repository in `the-club`; aggiornati nomi file, link GitHub, identificatore Tauri e chiavi locali.
+- Migliorato avviso aggiornamenti: controllo automatico ogni ora con persistenza del dismiss per versione.
+
+### Sicurezza
+- Aggiornato `.gitignore` per escludere backup ed export con il nuovo nome `the-club-*`.
+- Verificata assenza di secret, credenziali o database locali nel repository.
+
 ## [1.0.21] - 2026-06-20
 
 ### Corretto
@@ -191,23 +201,23 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 - Autenticazione JWT + bcrypt
 - TypeScript strict mode
 
-[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.19...HEAD
-[1.0.19]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.18...v1.0.19
-[1.0.18]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.17...v1.0.18
-[1.0.17]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.16...v1.0.17
-[1.0.16]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.15...v1.0.16
-[1.0.15]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.14...v1.0.15
-[1.0.14]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.13...v1.0.14
-[1.0.13]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.12...v1.0.13
-[1.0.12]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.11...v1.0.12
-[1.0.11]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.10...v1.0.11
-[1.0.10]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.9...v1.0.10
-[1.0.9]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.8...v1.0.9
-[1.0.8]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.7...v1.0.8
-[1.0.7]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.6...v1.0.7
-[1.0.6]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.5...v1.0.6
-[1.0.5]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.4...v1.0.5
-[1.0.4]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.3...v1.0.4
-[1.0.3]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.2...v1.0.3
-[1.0.1]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/Francy2009/Gestore-pub/releases/tag/v1.0.0
+[Unreleased]: https://github.com/Francy2009/The-Club/compare/v1.0.19...HEAD
+[1.0.19]: https://github.com/Francy2009/The-Club/compare/v1.0.18...v1.0.19
+[1.0.18]: https://github.com/Francy2009/The-Club/compare/v1.0.17...v1.0.18
+[1.0.17]: https://github.com/Francy2009/The-Club/compare/v1.0.16...v1.0.17
+[1.0.16]: https://github.com/Francy2009/The-Club/compare/v1.0.15...v1.0.16
+[1.0.15]: https://github.com/Francy2009/The-Club/compare/v1.0.14...v1.0.15
+[1.0.14]: https://github.com/Francy2009/The-Club/compare/v1.0.13...v1.0.14
+[1.0.13]: https://github.com/Francy2009/The-Club/compare/v1.0.12...v1.0.13
+[1.0.12]: https://github.com/Francy2009/The-Club/compare/v1.0.11...v1.0.12
+[1.0.11]: https://github.com/Francy2009/The-Club/compare/v1.0.10...v1.0.11
+[1.0.10]: https://github.com/Francy2009/The-Club/compare/v1.0.9...v1.0.10
+[1.0.9]: https://github.com/Francy2009/The-Club/compare/v1.0.8...v1.0.9
+[1.0.8]: https://github.com/Francy2009/The-Club/compare/v1.0.7...v1.0.8
+[1.0.7]: https://github.com/Francy2009/The-Club/compare/v1.0.6...v1.0.7
+[1.0.6]: https://github.com/Francy2009/The-Club/compare/v1.0.5...v1.0.6
+[1.0.5]: https://github.com/Francy2009/The-Club/compare/v1.0.4...v1.0.5
+[1.0.4]: https://github.com/Francy2009/The-Club/compare/v1.0.3...v1.0.4
+[1.0.3]: https://github.com/Francy2009/The-Club/compare/v1.0.2...v1.0.3
+[1.0.1]: https://github.com/Francy2009/The-Club/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.0

@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="mt-20 border-t border-[var(--line)] px-4 pb-14 pt-10 text-[var(--sea-ink-soft)]">
       <div className="page-wrap flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
         <p className="m-0 text-sm">
-          &copy; {year} Gestore Pub. Tutti i diritti riservati.
+          &copy; {year} The Club. Tutti i diritti riservati.
         </p>
         <p className="island-kicker m-0">Archivio locale del club</p>
       </div>

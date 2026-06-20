@@ -20,6 +20,8 @@ const RECOVERY_MAX_FAILURES = 5;
 const MAX_BACKUP_BYTES = 20 * 1024 * 1024;
 const MAX_BACKUP_MEMBERS = 10000;
 const MAX_BACKUP_ATTENDANCES = 250000;
+const BACKUP_APPLICATION = 'the-club';
+const LEGACY_BACKUP_APPLICATION = 'gestore-pub';
 
 // Admin rate limiting constants
 const ADMIN_WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -846,7 +848,7 @@ export const logoutFn = createServerFn({ method: 'POST' })
 
 export const resetLocalDatabaseFn = createServerFn({ method: 'POST' })
   .handler(async () => {
-    if (!import.meta.env.DEV || process.env.GESTORE_PUB_ENABLE_DEV_RESET !== 'true') {
+    if (!import.meta.env.DEV || process.env.THE_CLUB_ENABLE_DEV_RESET !== 'true') {
       throw new Error('Reset database non abilitato.');
     }
 
@@ -1480,7 +1482,7 @@ export const exportBackupFn = createServerFn({ method: 'GET' })
 
     const exportedAt = new Date().toISOString();
     const backup = {
-      application: 'gestore-pub',
+      application: BACKUP_APPLICATION,
       version: 1,
       exported_at: exportedAt,
       notes: 'Backup standard: contiene anagrafica soci, token QR, ruoli, dati recupero non segreti e storico presenze. NON contiene hash password né hash risposta di recupero.',
@@ -1617,7 +1619,10 @@ export const restoreBackupFn = createServerFn({ method: 'POST' })
     }
 
     assertRecord(parsed);
-    if (parsed.application !== 'gestore-pub' || parsed.version !== 1) {
+    if (
+      (parsed.application !== BACKUP_APPLICATION && parsed.application !== LEGACY_BACKUP_APPLICATION) ||
+      parsed.version !== 1
+    ) {
       throw new Error('Backup non compatibile con questa applicazione');
     }
 

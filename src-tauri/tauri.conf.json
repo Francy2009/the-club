@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Gestore Pub",
-  "version": "1.0.21",
-  "identifier": "com.gestore.pub",
+  "productName": "The Club",
+  "version": "1.0.22",
+  "identifier": "com.the.club",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3000",
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Gestore Pub",
+        "title": "The Club",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,
