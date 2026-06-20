@@ -7,6 +7,18 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.19] - 2026-06-20
+
+### Aggiunto
+- Avviso desktop non invasivo quando una nuova GitHub Release e disponibile.
+- Versione applicazione dichiarata anche in `package.json` e `package-lock.json`.
+
+### Modificato
+- Dipendenze aggiornate tramite Dependabot: TanStack Router, TanStack SSR Query, TanStack Devtools Vite, Vitest e Tailwind Typography.
+- TanStack Start e Router Plugin allineati a versioni compatibili con il nuovo Router per ripristinare il prerender Tauri.
+- Workflow GitHub Actions aggiornati tramite Dependabot.
+- Security policy rifinita per la pubblicazione open source.
+
 ## [1.0.18] - 2026-06-19
 
 ### Aggiunto
@@ -166,7 +178,8 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 - Autenticazione JWT + bcrypt
 - TypeScript strict mode
 
-[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.18...HEAD
+[Unreleased]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.19...HEAD
+[1.0.19]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.18...v1.0.19
 [1.0.18]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.17...v1.0.18
 [1.0.17]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.16...v1.0.17
 [1.0.16]: https://github.com/Francy2009/Gestore-pub/compare/v1.0.15...v1.0.16

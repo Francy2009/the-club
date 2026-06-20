@@ -23,8 +23,9 @@ Report privately to the project maintainer with:
 - expected impact;
 - suggested fix, if available.
 
-If you are publishing a fork, replace this section with a private contact email
-or GitHub Security Advisory instructions before making the repository public.
+If GitHub private vulnerability reporting is enabled for this repository, use
+that channel. Otherwise, contact the maintainer privately through their GitHub
+profile before disclosing details publicly.
 
 ## Sensitive Data
 

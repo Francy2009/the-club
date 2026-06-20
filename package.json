@@ -1,5 +1,6 @@
 {
   "name": "gestore-pub",
+  "version": "1.0.19",
   "private": true,
   "type": "module",
   "imports": {
@@ -22,8 +23,8 @@
     "@tailwindcss/vite": "4.3.0",
     "@tanstack/react-router": "1.170.16",
     "@tanstack/react-router-ssr-query": "1.167.1",
-    "@tanstack/react-start": "1.168.14",
-    "@tanstack/router-plugin": "1.168.11",
+    "@tanstack/react-start": "1.168.26",
+    "@tanstack/router-plugin": "1.168.18",
     "@yudiel/react-qr-scanner": "2.6.0",
     "jspdf": "4.2.1",
     "lucide-react": "0.545.0",
