@@ -1,63 +1,42 @@
-# Security Policy
+# Sicurezza
 
-## Supported Scope
+## Segnalare una vulnerabilità
 
-This project is a local-first desktop application. Security reports should focus
-on the application code in:
+Se trovi un problema di sicurezza, **non aprire una issue pubblica**. Scrivimi in privato tramite il mio profilo GitHub o, se abilitata, usa la segnalazione privata di vulnerabilità di GitHub.
 
-- `src/`
-- `src-tauri/`
-- `prisma/`
-- release/build configuration
+Indica se possibile:
+- quale file o funzione è coinvolto
+- come riprodurre il problema
+- l'impatto che potrebbe avere
+- una fix, se hai un'idea
 
-## Reporting a Vulnerability
+Risponderò appena posso e ti darò credito nella release che risolve il problema, se vuoi.
 
-Please do not open a public issue for vulnerabilities that expose credentials,
-personal data, database contents, QR tokens, backup files, or destructive reset
-paths.
+## Dati sensibili
 
-Report privately to the project maintainer with:
+Non committare mai nel repository (e non condividere pubblicamente):
 
-- affected file or feature;
-- reproduction steps;
-- expected impact;
-- suggested fix, if available.
+- file del database locale (`prisma/dev.db`, `*.db`, `*.sqlite`)
+- file dati dell'app desktop (`desktop-db.json`)
+- backup esportati (JSON o CSV)
+- file `.env` o configurazione con segreti
+- screenshot o log che contengono nomi dei soci, token QR, username, password temporanee
 
-If GitHub private vulnerability reporting is enabled for this repository, use
-that channel. Otherwise, contact the maintainer privately through their GitHub
-profile before disclosing details publicly.
+I backup contengono dati personali e token QR. Conservali cifrati e non mandarli in chat pubbliche o email non protette.
 
-## Sensitive Data
+## Sviluppo locale
 
-Never commit or share:
+`npm run dev` resta in ascolto su `127.0.0.1` — non è raggiungibile dalla rete.
 
-- local database files such as `prisma/dev.db`, `*.db`, `*.sqlite`;
-- desktop app data files such as `desktop-db.json`;
-- exported backup JSON or CSV files;
-- `.env` files or local configuration containing secrets;
-- screenshots or logs containing member data, QR tokens, usernames, recovery
-  questions, or temporary passwords.
-
-Backup files may contain personal data and QR tokens. Store them encrypted and
-share them only through trusted channels.
-
-## Local Development Safety
-
-`npm run dev` binds to `127.0.0.1` by default.
-
-The local database reset panel is disabled in normal development. To enable it
-intentionally, use:
+Il pannello di reset del database è disattivato di default. Per attivarlo serve esplicitamente:
 
 ```bash
 npm run dev:reset
 ```
 
-This command enables both the client-side reset panel and the server-side
-development reset handler. Do not expose this mode on a LAN or public network.
+Non usarlo su reti condivise: abilita una funzione che cancella tutti i dati locali.
 
-## Release Checklist
-
-Before publishing a release or opening the repository:
+## Prima di una release
 
 ```bash
 npm audit --audit-level=moderate
@@ -67,6 +46,4 @@ npm run build
 npm run build:tauri
 ```
 
-Also verify that no local database, backup, export, `.env`, or generated bundle
-file is staged for commit. Desktop releases should also include a generated
-`src-tauri/Cargo.lock` so Rust dependencies are reproducible.
+Verifica anche che nessun file locale (database, backup, `.env`, bundle generato) sia stato aggiunto al commit.

@@ -75,7 +75,7 @@ I backup contengono dati personali e token QR: conservali su un supporto sicuro,
 - Rate limiting su login e recupero password
 - Nessuna telemetria o tracking
 
-Per dettagli tecnici: [SECURITY.md](SECURITY.md), [PRIVACY.md](PRIVACY.md), [SECURITY_AUDIT_REPORT.md](SECURITY_AUDIT_REPORT.md)
+Per dettagli tecnici: [SECURITY.md](SECURITY.md), [PRIVACY.md](PRIVACY.md)
 
 ## Sviluppo
 
