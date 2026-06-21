@@ -784,7 +784,17 @@ export async function registerAttendanceFn(args?: FnArgs) {
 
   const now = new Date()
   if (new Date(member.expiry_date) < now) {
-    throw new Error(`Tessera scaduta il ${new Date(member.expiry_date).toLocaleDateString('it-IT')}`)
+    return {
+      success: false,
+      expired: true,
+      alreadyCheckedIn: false,
+      member: {
+        id: member.id,
+        first_name: member.first_name,
+        last_name: member.last_name,
+        member_number: member.member_number,
+      },
+    }
   }
 
   const checkInDay = getLocalDateKey(now)

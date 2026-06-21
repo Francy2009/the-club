@@ -57,6 +57,8 @@ function AdminDashboard() {
     last_name: string
     member_number: string
     qr_token: string
+    joined_at: string
+    expiry_date: string
   } | null>(null)
   const router = useRouter()
 
@@ -83,6 +85,8 @@ function AdminDashboard() {
     last_name: string
     member_number: string
     qr_token: string
+    joined_at: string
+    expiry_date: string
   }) => {
     setQrDownloadMember(member)
 
@@ -128,6 +132,11 @@ function AdminDashboard() {
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(239, 68, 68)
         doc.text(`N. ${member.member_number}`, 8, 34)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(4.8)
+        doc.setTextColor(65, 97, 102)
+        doc.text(`Valida dal ${new Date(member.joined_at).toLocaleDateString('it-IT')}`, 8, 39)
+        doc.text(`Scade il ${new Date(member.expiry_date).toLocaleDateString('it-IT')}`, 8, 42.5)
 
         doc.setFillColor(255, 255, 255)
         doc.roundedRect(48, 10, 29, 29, 3, 3, 'F')

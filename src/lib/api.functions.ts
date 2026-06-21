@@ -1168,7 +1168,17 @@ export const registerAttendanceFn = createServerFn({ method: 'POST' })
     // Check if membership is active
     const today = new Date();
     if (member.expiry_date < today) {
-      throw new Error(`Tessera scaduta il ${member.expiry_date.toLocaleDateString('it-IT')}`);
+      return {
+        success: false,
+        expired: true,
+        alreadyCheckedIn: false,
+        member: {
+          id: member.id,
+          first_name: member.first_name,
+          last_name: member.last_name,
+          member_number: member.member_number ?? '',
+        },
+      };
     }
 
     // Prevent duplicate attendance for today - use transaction with unique constraint

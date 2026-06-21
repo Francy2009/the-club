@@ -221,6 +221,28 @@ function ScannerPage() {
           }
           setTodayCount((count) => count + 1)
         }
+      } else if ((res as any).expired) {
+        const memberName = `${res.member.first_name} ${res.member.last_name}`
+        const memberNum = res.member.member_number ?? 'N/D'
+
+        setScanResult({
+          status: 'error',
+          message: `Tessera scaduta: ${memberName} (tessera ${memberNum}).`,
+          name: memberName,
+          memberNumber: memberNum,
+        })
+
+        setLogs((prev) => [
+          {
+            id: generateLocalId(),
+            name: memberName,
+            memberNumber: memberNum,
+            status: 'error',
+            message: 'Tessera scaduta',
+            time: timeString,
+          },
+          ...prev.slice(0, 9),
+        ])
       }
     } catch (err: any) {
       const timeString = new Date().toLocaleTimeString('it-IT', {
