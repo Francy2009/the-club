@@ -7,6 +7,11 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.27] - 2026-06-21
+
+### Corretto
+- Risolto errore NSIS su Windows: sintassi `IfErrors` corretta per usare label invece di parametri numerici.
+
 ## [1.0.26] - 2026-06-21
 
 ### Corretto
