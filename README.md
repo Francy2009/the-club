@@ -1,214 +1,116 @@
 # The Club
 
-The Club è un'applicazione desktop per la gestione di soci, tessere QR,
-presenze, rinnovi, backup e report di un club privato.
+The Club è un'app desktop per gestire soci, tessere QR, presenze e rinnovi di un club privato.
 
-È pensata per un utilizzo locale: i dati restano sul computer dell'utente, senza
-telemetria e senza servizi cloud obbligatori.
+Tutto resta sul tuo computer: niente cloud, niente telemetria, niente account da creare su qualche server.
 
-## Chi Sono
+## Chi sono
 
-Sono **Francesco Dell'Orto**, studente del liceo scientifico.
+Sono **Francesco Dell'Orto**, studente del liceo scientifico. Ho costruito questa app perché mi serviva uno strumento concreto per un club locale — qualcosa che si installa, si apre e funziona, senza dover configurare un server o pagare un abbonamento.
 
-Ho sviluppato questo progetto come lavoro personale, con l'obiettivo di
-realizzare un'applicazione concreta, installabile e comprensibile anche da chi
-la usa senza conoscenze tecniche.
+Ho usato strumenti di intelligenza artificiale come supporto durante lo sviluppo, soprattutto per il frontend e la documentazione, ma le decisioni, la struttura e le verifiche sono mie.
 
-## Uso Dell'AI
+## Cosa fa
 
-Durante lo sviluppo ho usato strumenti di intelligenza artificiale come supporto
-puntuale, soprattutto per rifinire alcune parti del frontend, rivedere problemi
-di codice e migliorare la documentazione.
+- Crea e gestisce i soci del club
+- Genera tessere con QR code
+- Registra le presenze tramite scanner QR (o ricerca manuale per nome)
+- Gestisce scadenze e rinnovi annuali
+- Esporta backup JSON, CSV e PDF
+- Recupero password tramite domanda personale
+- Funziona su Windows, macOS e Linux
 
-Il progetto non è stato generato automaticamente: struttura, funzionalità,
-verifiche e scelte finali sono state seguite e adattate manualmente.
+## Installazione
 
-## Cosa Fa
+Vai su [GitHub Releases](https://github.com/Francy2009/The-Club/releases) e scarica il file giusto per il tuo sistema:
 
-- crea e gestisce i soci del club;
-- genera tessere con QR code;
-- registra le presenze tramite scanner QR;
-- gestisce scadenze e rinnovi annuali;
-- esporta backup, CSV e PDF;
-- permette il recupero password tramite domanda personale;
-- funziona come app desktop per Windows, macOS e Linux.
+- **Windows**: file `.msi` o `.exe` — doppio clic per installare
+- **macOS**: file `.dmg` — trascina l'app in Applicazioni
+- **Linux**: `.AppImage`, `.deb` o `.rpm`
 
-## Installazione Per Chi Usa L'App
+Al primo avvio l'app crea il database da sola e ti chiede di configurare l'account amministratore (username, password, domanda di recupero). Non serve preparare nulla a mano.
 
-La versione pronta da usare si scarica dalla pagina:
+## Aggiornamento
 
-[GitHub Releases](https://github.com/Francy2009/The-Club/releases)
+Quando esce una nuova versione, l'app ti avvisa automaticamente all'apertura con un banner in alto. Clicca **"Apri release"** per aprire la pagina GitHub nel browser.
 
-Scegli il file adatto al tuo sistema:
+Per aggiornare:
 
-- Windows: installer `.msi` o `.exe`;
-- macOS: file `.dmg`;
-- Linux: `.AppImage`, `.deb` o `.rpm`.
+1. Scarica il nuovo installer dalla pagina GitHub Releases
+2. Installalo sopra la versione precedente — **i tuoi dati vengono conservati automaticamente**
+3. Riapri l'app
 
-Al primo avvio l'app crea automaticamente il database locale e apre la
-configurazione dell'account amministratore. Non bisogna preparare database,
-server o file a mano.
+Non c'è bisogno di disinstallare prima: l'installer sostituisce la vecchia versione mantenendo i dati intatti.
 
-## Primo Avvio
+## Disinstallazione
 
-Quando il database è vuoto, l'app crea un account amministratore iniziale e
-chiede di configurare:
+Se vuoi rimuovere completamente l'app **e tutti i suoi dati**:
 
-- username;
-- password robusta;
-- domanda personale;
-- risposta di recupero.
+1. Apri l'app, vai su **Impostazioni → Rimuovi dati locali** e clicca "Elimina tutti i dati locali"
+2. Disinstalla l'app dal sistema (Pannello di controllo su Windows, Applicazioni su macOS, `apt remove` / Gestore pacchetti su Linux)
 
-I dati di recupero vengono protetti e la risposta non viene salvata in chiaro.
-Servono nel caso in cui l'amministratore dimentichi la password.
+Se disinstalli solo l'app senza passare dal pulsante nelle impostazioni, i dati restano nella cartella dati del sistema. Puoi eliminarli manualmente:
 
-## Dove Vengono Salvati I Dati
+- **Windows**: `%APPDATA%\com.the.club\`
+- **macOS**: `~/Library/Application Support/com.the.club/`
+- **Linux**: `~/.local/share/com.the.club/` o `~/.config/com.the.club/`
 
-Nella versione desktop i dati vengono salvati in locale, nella cartella dati
-dell'app, dentro un file chiamato:
+## Dove finiscono i dati
 
-```text
-desktop-db.json
-```
+Nella versione desktop, tutto viene salvato in un file chiamato `desktop-db.json` nella cartella dati dell'app. L'app non invia nulla a server esterni.
 
-Questo file viene creato automaticamente. Se una versione precedente aveva dati
-nel `localStorage` della WebView, la nuova versione li migra automaticamente nel
-file locale dell'app.
+## Backup
 
-L'app non invia dati a server esterni e non usa analytics.
+Dalle impostazioni admin puoi esportare backup completi (JSON) o fogli di calcolo (CSV). I file finiscono nella cartella Download.
 
-## Backup Ed Export
-
-Dalle impostazioni admin si possono esportare backup e file di lavoro.
-
-I file generati finiscono di default nella cartella Download. In alcuni ambienti
-è possibile scegliere una cartella personalizzata.
-
-Attenzione: i backup possono contenere dati personali, token QR e informazioni
-sui soci. Vanno conservati con cura, meglio su un supporto protetto o cifrato.
-Non vanno caricati in chat pubbliche, email non protette o cloud non affidabili.
+I backup contengono dati personali e token QR: conservali su un supporto sicuro, non in chat pubbliche o cloud non affidabili.
 
 ## Sicurezza
 
-L'app include alcune protezioni pensate per un uso reale locale:
+- Password con hash PBKDF2-SHA512
+- Dati di recupero protetti (risposta salvata come hash)
+- Content Security Policy nel bundle Tauri
+- Backup standard senza hash password
+- Protezione contro CSV formula injection
+- Rate limiting su login e recupero password
+- Nessuna telemetria o tracking
 
-- password salvate con hash PBKDF2-SHA512;
-- dati di recupero protetti e risposta salvata come hash separato;
-- database desktop fuori dal `localStorage` della WebView;
-- Content Security Policy nel bundle Tauri;
-- backup standard senza hash password o hash risposta recupero;
-- protezioni contro CSV formula injection;
-- nessuna telemetria o tracking.
+Per dettagli tecnici: [SECURITY.md](SECURITY.md), [PRIVACY.md](PRIVACY.md), [SECURITY_AUDIT_REPORT.md](SECURITY_AUDIT_REPORT.md)
 
-L'app è pensata per essere usata su un computer gestito da una persona fidata.
-Non sostituisce buone pratiche come account del sistema operativo protetti,
-backup sicuri e attenzione nel condividere file o QR code.
+## Sviluppo
 
-Per maggiori dettagli tecnici vedi:
-
-- [PRIVACY.md](PRIVACY.md)
-- [SECURITY.md](SECURITY.md)
-- [SECURITY_AUDIT_REPORT.md](SECURITY_AUDIT_REPORT.md)
-
-## Sviluppo Locale
-
-Requisiti principali:
-
-- Node.js;
-- npm;
-- Rust e Cargo, solo per compilare l'app desktop Tauri. Il repo include
-  `rust-toolchain.toml` per usare la toolchain stabile con profilo minimale.
-
-Installa le dipendenze:
+Requisiti: Node.js, npm, Rust/Cargo (solo per la build desktop).
 
 ```bash
-npm install
+npm install          # dipendenze
+npm run dev          # sviluppo web su localhost:3000
+npm run build        # build frontend
+npm run build:tauri  # build frontend + asset Tauri
+npm test             # test
 ```
 
-Avvia in sviluppo web:
+Per la build desktop completa:
 
 ```bash
-npm run dev
-```
-
-Il comando standard ascolta solo su `127.0.0.1`. Se devi provare il pannello di
-reset del database locale durante lo sviluppo, abilitalo esplicitamente:
-
-```bash
-npm run dev:reset
-```
-
-Non usare `dev:reset` su reti condivise: abilita una funzione distruttiva pensata
-solo per sviluppo locale.
-
-Build frontend:
-
-```bash
-npm run build
-```
-
-Build frontend per Tauri:
-
-```bash
-npm run build:tauri
-```
-
-Build desktop Tauri:
-
-```bash
-rustup show
 cd src-tauri
 cargo generate-lockfile
 cargo tauri build
 ```
 
-Gli installer vengono generati in:
+Gli installer finiscono in `src-tauri/target/release/bundle/`.
 
-```text
-src-tauri/target/release/bundle/
+## Struttura
+
 ```
-
-## Test
-
-```bash
-npm test
-```
-
-Al momento i test coprono soprattutto il primo avvio desktop, la creazione
-automatica del database locale, la migrazione dal vecchio storage e il reset
-dati dell'app.
-
-## Struttura Del Progetto
-
-```text
-src/          interfaccia, route e logica applicativa
+src/          interfaccia, route e logica
 src/lib/      API, auth, export, storage desktop
-src-tauri/    configurazione e comandi Rust per app desktop
-prisma/       schema e migrazioni per la modalità server/sviluppo
-public/       asset statici
+src-tauri/    configurazione e comandi Rust
+prisma/       schema e migrazioni (modalità server/sviluppo)
+public/       asset statici, favicon, manifest
 ```
-
-## Note Di Consegna
-
-Questa app è pensata per essere distribuita tramite GitHub Releases come
-applicazione desktop locale.
-
-Prima di pubblicare una nuova versione conviene sempre eseguire:
-
-```bash
-npm test
-npm run build
-npm run build:tauri
-```
-
-La compilazione nativa Tauri viene verificata dal workflow GitHub Actions sulle
-piattaforme supportate. Per release riproducibili, `src-tauri/Cargo.lock`
-dovrebbe essere generato e committato insieme al codice Rust/Tauri.
 
 ## Licenza
 
-Il progetto è distribuito con licenza MIT. Vedi [LICENSE](LICENSE).
+Licenza MIT — vedi [LICENSE](LICENSE).
 
-### Disclaimer
-
-Il software è fornito "così com'è" (AS IS), senza alcuna garanzia esplicita o implicita, di commerciabilità o idoneità per uno scopo particolare. L'autore non è responsabile di eventuali danni diretti o indiretti derivanti dall'uso del software. L'utente è responsabile della gestione sicura dei dati (backup, permessi del sistema operativo, protezione dei file di backup e dei QR code).
+Il software è fornito "così com'è" (AS IS), senza garanzia di alcun tipo. L'autore non è responsabile di danni derivanti dall'uso del software. L'utente è responsabile della gestione sicura dei propri dati.

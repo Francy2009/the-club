@@ -2,12 +2,13 @@ import { createFileRoute, Link, redirect, useLoaderData } from '@tanstack/react-
 import { jsPDF } from 'jspdf'
 import { getMonthlySummaryFn } from '../../lib/api'
 import { savePdfDocument } from '../../lib/export-preferences'
-import { AlertTriangle, ArrowLeft, CalendarDays, ClipboardList, Download, FileText, Users } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CalendarDays, ClipboardList, Download, FileText, Users, ChevronDown } from 'lucide-react'
+import { useState, useMemo } from 'react'
 
 export const Route = createFileRoute('/admin/riepilogo')({
   loader: async () => {
     try {
-      return await getMonthlySummaryFn()
+      return await getMonthlySummaryFn({ data: { expiry_month_offset: 0, attendance_month_offset: -1 } })
     } catch (e: any) {
       throw new Error(e?.message || 'Impossibile caricare il riepilogo.')
     }
@@ -30,10 +31,57 @@ function formatTime(value: string) {
   return new Date(value).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 }
 
+function generateMonthOptions(maxBack: number) {
+  const now = new Date()
+  const options: { offset: number; label: string }[] = []
+  for (let i = 0; i >= -maxBack; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1)
+    options.push({
+      offset: i,
+      label: d.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }),
+    })
+  }
+  return options
+}
+
 function AdminSummary() {
-  const summary = useLoaderData({ from: '/admin/riepilogo' }) as MonthlySummary
+  const initialSummary = useLoaderData({ from: '/admin/riepilogo' }) as MonthlySummary
+  const [summary, setSummary] = useState<MonthlySummary>(initialSummary)
+  const [expiryOffset, setExpiryOffset] = useState(0)
+  const [attendanceOffset, setAttendanceOffset] = useState(-1)
+  const [loading, setLoading] = useState<'expiry' | 'attendance' | null>(null)
+
+  const expiryMonthOptions = useMemo(() => generateMonthOptions(12), [])
+  const attendanceMonthOptions = useMemo(() => generateMonthOptions(12), [])
+
   const visibleExpiries = summary.expiry.members.slice(0, 12)
   const visibleEvents = summary.attendance.events.slice(0, 12)
+
+  const fetchExpiry = async (offset: number) => {
+    setExpiryOffset(offset)
+    setLoading('expiry')
+    try {
+      const res = await getMonthlySummaryFn({ data: { expiry_month_offset: offset, attendance_month_offset: attendanceOffset } })
+      setSummary(res)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const fetchAttendance = async (offset: number) => {
+    setAttendanceOffset(offset)
+    setLoading('attendance')
+    try {
+      const res = await getMonthlySummaryFn({ data: { expiry_month_offset: expiryOffset, attendance_month_offset: offset } })
+      setSummary(res)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(null)
+    }
+  }
 
   const drawPdfShell = (doc: jsPDF, title: string, subtitle: string, count: string, label: string) => {
     const pageWidth = doc.internal.pageSize.getWidth()
@@ -225,7 +273,7 @@ function AdminSummary() {
               Riepilogo operativo
             </h1>
             <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--sea-ink-soft)]">
-              Scarica le tessere in scadenza del mese corrente e il riepilogo eventi del mese precedente, gia concluso.
+              Scarica le tessere in scadenza e il riepilogo eventi. Usa i selettori per scegliere il mese — fino a un anno indietro.
             </p>
           </div>
         </div>
@@ -241,19 +289,32 @@ function AdminSummary() {
               <h2 className="display-title mt-4 text-xl font-black text-[var(--sea-ink)]">
                 Tessere in scadenza
               </h2>
-              <p className="mt-1 text-xs font-semibold text-[var(--sea-ink-soft)]">
-                {summary.expiry.month_label}
-              </p>
+              <div className="mt-2 relative">
+                <select
+                  value={expiryOffset}
+                  onChange={(e) => fetchExpiry(Number(e.target.value))}
+                  disabled={loading !== null}
+                  className="block appearance-none rounded-xl border border-[var(--line)] bg-white/50 px-3 py-2 pr-8 text-xs font-semibold text-[var(--sea-ink)] focus:border-rose-500/50 focus:outline-none disabled:opacity-50"
+                >
+                  {expiryMonthOptions.map((opt) => (
+                    <option key={opt.offset} value={opt.offset}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--sea-ink-soft)]" />
+              </div>
             </div>
             <span className="rounded-full bg-rose-500 px-3 py-1 text-sm font-black text-white">
-              {summary.expiry.members.length}
+              {loading === 'expiry' ? '...' : summary.expiry.members.length}
             </span>
           </div>
 
           <button
             type="button"
             onClick={downloadExpiryPdf}
-            className="mobile-action inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-rose-500 px-5 py-3 text-xs font-extrabold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-600"
+            disabled={loading !== null}
+            className="mobile-action inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-rose-500 px-5 py-3 text-xs font-extrabold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-600 disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
             Scarica tessere in scadenza
@@ -269,19 +330,31 @@ function AdminSummary() {
               <h2 className="display-title mt-4 text-xl font-black text-[var(--sea-ink)]">
                 Eventi e presenze
               </h2>
-              <p className="mt-1 text-xs font-semibold text-[var(--sea-ink-soft)]">
-                {summary.attendance.month_label} concluso
-              </p>
+              <div className="mt-2 relative">
+                <select
+                  value={attendanceOffset}
+                  onChange={(e) => fetchAttendance(Number(e.target.value))}
+                  disabled={loading !== null}
+                  className="block appearance-none rounded-xl border border-[var(--line)] bg-white/50 px-3 py-2 pr-8 text-xs font-semibold text-[var(--sea-ink)] focus:border-teal-500/50 focus:outline-none disabled:opacity-50"
+                >
+                  {attendanceMonthOptions.map((opt) => (
+                    <option key={opt.offset} value={opt.offset}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--sea-ink-soft)]" />
+              </div>
             </div>
             <span className="rounded-full bg-teal-600 px-3 py-1 text-sm font-black text-white">
-              {summary.attendance.total_attendances}
+              {loading === 'attendance' ? '...' : summary.attendance.total_attendances}
             </span>
           </div>
 
           <button
             type="button"
             onClick={downloadAttendancePdf}
-            disabled={!summary.attendance.is_closed}
+            disabled={loading !== null || !summary.attendance.is_closed}
             className="mobile-action inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 py-3 text-xs font-extrabold text-white shadow-lg shadow-teal-600/20 transition hover:bg-teal-700 disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
@@ -293,7 +366,7 @@ function AdminSummary() {
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="island-shell rounded-3xl p-4 sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="display-title m-0 text-lg font-bold tracking-tight text-[var(--sea-ink)]">Scadenze del mese</h2>
+            <h2 className="display-title m-0 text-lg font-bold tracking-tight text-[var(--sea-ink)]">Scadenze — {summary.expiry.month_label}</h2>
             <CalendarDays className="h-5 w-5 text-rose-500" />
           </div>
           <div className="space-y-2">
@@ -318,7 +391,7 @@ function AdminSummary() {
 
         <article className="island-shell rounded-3xl p-4 sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="display-title m-0 text-lg font-bold tracking-tight text-[var(--sea-ink)]">Eventi del mese precedente</h2>
+            <h2 className="display-title m-0 text-lg font-bold tracking-tight text-[var(--sea-ink)]">Eventi — {summary.attendance.month_label}</h2>
             <Users className="h-5 w-5 text-teal-600" />
           </div>
           <div className="space-y-3">

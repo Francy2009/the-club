@@ -7,11 +7,19 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
-## [1.0.30] - 2026-06-21
+## [1.0.31] - 2026-06-21
+
+### Aggiunto
+- Selettore mese nella pagina Riepilogo: scelta del mese per scaricare scadenze ed eventi fino a un anno indietro.
+- Nuova favicon e icone app con design gradient (rosso/giallo/teal) e lettera C.
+- Riferimento favicon SVG nell'head della pagina.
 
 ### Corretto
-- Risolto errore "cannot transition to a new state, already under transition" dello scanner QR: l'istanza viene ora distrutta e ricreata ad ogni avvio invece di essere riusata.
-- Semplificato template NSIS Windows: rimosso hook complesso che causava errori di build e richieste di conferma inutili durante l'aggiornamento. La pulizia dati su disinstallazione manuale resta disponibile dal pulsante nelle impostazioni.
+- Fix macOS DMG build: rimosso icon.icns corrotto (era un PNG rinominato), sostituito con icon.png 1024x1024 da cui Tauri genera l'icns automaticamente.
+- Scanner: la lista soci ora appare solo durante la ricerca (max 8 risultati) invece di mostrare tutti i soci all'apertura.
+
+### Modificato
+- README riscritto in tono più umano e con istruzioni dettagliate per aggiornamento e disinstallazione.
 
 ## [1.0.29] - 2026-06-21
 

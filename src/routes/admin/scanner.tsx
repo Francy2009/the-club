@@ -75,7 +75,7 @@ function ScannerPage() {
 
   const filteredMembers = useMemo(() => {
     const term = memberSearch.trim().toLowerCase()
-    if (!term) return members.slice(0, 25)
+    if (!term) return [] // No search = no list, avoids showing hundreds of members
 
     return members.filter((member) => {
       const fullName = `${member.first_name} ${member.last_name}`.toLowerCase()
@@ -83,7 +83,7 @@ function ScannerPage() {
         fullName.includes(term) ||
         member.member_number.toLowerCase().includes(term)
       )
-    }).slice(0, 50)
+    }).slice(0, 8) // Limit to 8 results for a clean UI
   }, [memberSearch, members])
 
   const getMemberStatus = (expiryDate: string) => {
@@ -664,7 +664,7 @@ function ScannerPage() {
                 )
               }) : (
                 <div className="py-10 text-center text-xs font-medium text-[var(--sea-ink-soft)]">
-                  Nessun socio trovato.
+                  {memberSearch.trim() ? 'Nessun socio trovato.' : 'Digita un nome o numero tessera per cercare un socio.'}
                 </div>
               )}
             </div>

@@ -1320,35 +1320,45 @@ export const getAttendanceLogsFn = createServerFn({ method: 'POST' })
 
 // Admin-guarded: Monthly summary for current expiries and previous completed attendance month
 export const getMonthlySummaryFn = createServerFn({ method: 'GET' })
-  .handler(async () => {
+  .inputValidator((data: unknown) => {
+    assertRecord(data);
+    return {
+      expiry_month_offset: typeof data.expiry_month_offset === 'number' ? data.expiry_month_offset : 0,
+      attendance_month_offset: typeof data.attendance_month_offset === 'number' ? data.attendance_month_offset : -1,
+    };
+  })
+  .handler(async ({ data }) => {
     const user = await getAuthenticatedUser();
     assertReadyAdmin(user);
 
     // Rate limit admin requests
     await assertAdminAllowed(user.id, 'general');
 
+    const expiryOffset = data.expiry_month_offset;
+    const attendanceOffset = data.attendance_month_offset;
+
     const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const previousMonthEnd = currentMonthStart;
-    const currentMonthLabel = currentMonthStart.toLocaleDateString('it-IT', {
+    const expiryMonthStart = new Date(now.getFullYear(), now.getMonth() + expiryOffset, 1);
+    const expiryMonthEnd = new Date(now.getFullYear(), now.getMonth() + expiryOffset + 1, 1);
+    const attendanceMonthStart = new Date(now.getFullYear(), now.getMonth() + attendanceOffset, 1);
+    const attendanceMonthEnd = new Date(now.getFullYear(), now.getMonth() + attendanceOffset + 1, 1);
+    const expiryMonthLabel = expiryMonthStart.toLocaleDateString('it-IT', {
       month: 'long',
       year: 'numeric',
     });
-    const previousMonthLabel = previousMonthStart.toLocaleDateString('it-IT', {
+    const attendanceMonthLabel = attendanceMonthStart.toLocaleDateString('it-IT', {
       month: 'long',
       year: 'numeric',
     });
-    const currentMonthKey = `${currentMonthStart.getFullYear()}-${String(currentMonthStart.getMonth() + 1).padStart(2, '0')}`;
-    const previousMonthKey = `${previousMonthStart.getFullYear()}-${String(previousMonthStart.getMonth() + 1).padStart(2, '0')}`;
+    const expiryMonthKey = `${expiryMonthStart.getFullYear()}-${String(expiryMonthStart.getMonth() + 1).padStart(2, '0')}`;
+    const attendanceMonthKey = `${attendanceMonthStart.getFullYear()}-${String(attendanceMonthStart.getMonth() + 1).padStart(2, '0')}`;
 
     const expiringMembers = await prisma.member.findMany({
       where: {
         role: { is: { role: 'user' } },
         expiry_date: {
-          gte: currentMonthStart,
-          lt: nextMonthStart,
+          gte: expiryMonthStart,
+          lt: expiryMonthEnd,
         },
       },
       orderBy: [
@@ -1360,8 +1370,8 @@ export const getMonthlySummaryFn = createServerFn({ method: 'GET' })
     const attendances = await prisma.attendance.findMany({
       where: {
         check_in_day: {
-          gte: getLocalDateKey(previousMonthStart),
-          lt: getLocalDateKey(previousMonthEnd),
+          gte: getLocalDateKey(attendanceMonthStart),
+          lt: getLocalDateKey(attendanceMonthEnd),
         },
       },
       include: {
@@ -1404,14 +1414,14 @@ export const getMonthlySummaryFn = createServerFn({ method: 'GET' })
     }
 
     return {
-      id: `summary-${currentMonthKey}`,
-      title: `Riepilogo ${currentMonthLabel}`,
+      id: `summary-${expiryMonthKey}-${attendanceMonthKey}`,
+      title: `Riepilogo ${expiryMonthLabel}`,
       generated_at: now.toISOString(),
       expiry: {
-        month_key: currentMonthKey,
-        month_label: currentMonthLabel,
-        period_start: currentMonthStart.toISOString(),
-        period_end: nextMonthStart.toISOString(),
+        month_key: expiryMonthKey,
+        month_label: expiryMonthLabel,
+        period_start: expiryMonthStart.toISOString(),
+        period_end: expiryMonthEnd.toISOString(),
         members: expiringMembers.map((member) => ({
           id: member.id,
           first_name: member.first_name,
@@ -1422,11 +1432,11 @@ export const getMonthlySummaryFn = createServerFn({ method: 'GET' })
         })),
       },
       attendance: {
-        month_key: previousMonthKey,
-        month_label: previousMonthLabel,
-        period_start: previousMonthStart.toISOString(),
-        period_end: previousMonthEnd.toISOString(),
-        is_closed: true,
+        month_key: attendanceMonthKey,
+        month_label: attendanceMonthLabel,
+        period_start: attendanceMonthStart.toISOString(),
+        period_end: attendanceMonthEnd.toISOString(),
+        is_closed: attendanceOffset < 0,
         total_attendances: attendances.length,
         events: Array.from(eventMap.values()),
       },
