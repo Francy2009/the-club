@@ -2,6 +2,7 @@ import { BellRing, ExternalLink, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { checkForAvailableUpdate, getCurrentAppVersion, isVersionNewer } from '../lib/update-check'
 import type { AppUpdateInfo } from '../lib/update-check'
+import { openExternalUrl } from '../lib/desktop-api'
 
 const DISMISSED_VERSION_KEY = 'the-club-update-dismissed-version'
 const CHECK_INTERVAL_MS = 60 * 60 * 1000 // 1 hour
@@ -47,15 +48,14 @@ export default function UpdateNotice() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <a
-            href={update.releaseUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mobile-action inline-flex items-center justify-center gap-2 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-4 py-2 text-xs font-extrabold text-[var(--sea-ink)] no-underline transition hover:-translate-y-0.5 hover:bg-[var(--link-bg-hover)]"
+          <button
+            type="button"
+            onClick={() => void openExternalUrl(update.releaseUrl)}
+            className="mobile-action inline-flex items-center justify-center gap-2 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-4 py-2 text-xs font-extrabold text-[var(--sea-ink)] no-underline transition hover:-translate-y-0.5 hover:bg-[var(--link-bg-hover)] cursor-pointer"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             Apri release
-          </a>
+          </button>
           <button
             type="button"
             onClick={dismissUpdate}

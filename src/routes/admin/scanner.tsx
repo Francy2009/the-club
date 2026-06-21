@@ -1,8 +1,8 @@
 import { createFileRoute, Link, redirect, useLoaderData } from '@tanstack/react-router'
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { getCheckInMembersFn, getTodayAttendanceFn, registerAttendanceFn } from '../../lib/api'
-import { Html5Qrcode, Html5QrcodeSupportedFormats, type QrcodeSuccessCallback, type QrcodeErrorCallback } from 'html5-qrcode'
-import { QrCode, ArrowLeft, ShieldAlert, CheckCircle2, AlertTriangle, Play, Pause, History, Keyboard, Search, UserCheck, Users, Clock } from 'lucide-react'
+import { Html5Qrcode, Html5QrcodeSupportedFormats, type QrcodeSuccessCallback, type QrcodeErrorCallback, type CameraDevice } from 'html5-qrcode'
+import { QrCode, ArrowLeft, ShieldAlert, CheckCircle2, AlertTriangle, Play, Pause, History, Keyboard, Search, UserCheck, Users, Clock, Camera } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/scanner')({
   loader: async () => {
@@ -46,6 +46,8 @@ function ScannerPage() {
     () => new Set(todayLogs.map((log) => log.member.id).filter(Boolean))
   )
   const [cameraError, setCameraError] = useState<string | null>(null)
+  const [cameras, setCameras] = useState<CameraDevice[]>([])
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null)
   
   // Last scan result feedback state
   const [scanResult, setScanResult] = useState<{
@@ -271,7 +273,7 @@ function ScannerPage() {
     // Only surface real camera errors via the start() promise rejection.
   }, [])
 
-  // Start / stop the camera scanner based on `active` state
+  // Start / stop the camera scanner based on `active` state and selected camera
   useEffect(() => {
     if (!mounted || !active) return
 
@@ -289,28 +291,38 @@ function ScannerPage() {
         }
 
         const scanner = scannerRef.current
-        if (scanner.isScanning) return
 
-        // Try to find the best camera (prefer back/environment camera)
+        // Stop if already scanning (e.g. switching cameras)
+        if (scanner.isScanning) {
+          await scanner.stop().catch(() => {})
+        }
+
+        // Determine camera config
         let cameraConfig: string | MediaTrackConstraints
 
-        try {
-          const cameras = await Html5Qrcode.getCameras()
-          if (cancelled) return
+        if (selectedCameraId) {
+          // User-selected camera
+          cameraConfig = selectedCameraId
+        } else {
+          // Auto-detect: prefer back/environment camera
+          try {
+            const detectedCameras = await Html5Qrcode.getCameras()
+            if (cancelled) return
+            setCameras(detectedCameras || [])
 
-          if (cameras && cameras.length > 0) {
-            // Prefer back camera by checking labels
-            const backCamera = cameras.find((cam) =>
-              /back|rear|environment|posteriore/i.test(cam.label)
-            )
-            cameraConfig = backCamera?.id || cameras[cameras.length - 1].id
-          } else {
-            // Fallback to environment facingMode constraint
+            if (detectedCameras && detectedCameras.length > 0) {
+              const backCamera = detectedCameras.find((cam) =>
+                /back|rear|environment|posteriore/i.test(cam.label)
+              )
+              const chosenId = backCamera?.id || detectedCameras[detectedCameras.length - 1].id
+              setSelectedCameraId(chosenId)
+              cameraConfig = chosenId
+            } else {
+              cameraConfig = { facingMode: 'environment' }
+            }
+          } catch {
             cameraConfig = { facingMode: 'environment' }
           }
-        } catch {
-          // If getCameras fails, try with facingMode constraint
-          cameraConfig = { facingMode: 'environment' }
         }
 
         if (cancelled) return
@@ -362,21 +374,54 @@ function ScannerPage() {
       cancelled = true
       const scanner = scannerRef.current
       if (scanner && scanner.isScanning) {
-        void scanner.stop().catch(() => {})
+        void scanner.stop().then(() => {}).catch(() => {})
       }
     }
-  }, [mounted, active, handleScanSuccess, handleScanError])
+  }, [mounted, active, selectedCameraId, handleScanSuccess, handleScanError])
 
-  // Cleanup scanner on unmount
+  // Refresh camera list on mount
+  useEffect(() => {
+    if (!mounted) return
+    Html5Qrcode.getCameras()
+      .then((detected) => {
+        if (detected && detected.length > 0) {
+          setCameras(detected)
+        }
+      })
+      .catch(() => {
+        // Ignore — will be handled by the scanner start effect
+      })
+  }, [mounted])
+
+  // Cleanup scanner on unmount — properly stop and clear
   useEffect(() => {
     return () => {
       const scanner = scannerRef.current
       if (scanner) {
         if (scanner.isScanning) {
-          void scanner.stop().catch(() => {})
+          scanner
+            .stop()
+            .then(() => {
+              scanner.clear()
+              scannerRef.current = null
+            })
+            .catch(() => {
+              // Force clear even if stop fails
+              try {
+                scanner.clear()
+              } catch {
+                // ignore
+              }
+              scannerRef.current = null
+            })
+        } else {
+          try {
+            scanner.clear()
+          } catch {
+            // ignore
+          }
+          scannerRef.current = null
         }
-        scanner.clear()
-        scannerRef.current = null
       }
     }
   }, [])
@@ -463,6 +508,24 @@ function ScannerPage() {
                 )}
               </button>
             </div>
+
+            {/* Camera selector */}
+            {cameras.length > 1 && (
+              <div className="mb-3 flex w-full items-center gap-2 sm:mb-4">
+                <Camera className="h-4 w-4 shrink-0 text-[var(--sea-ink-soft)]" />
+                <select
+                  value={selectedCameraId ?? ''}
+                  onChange={(e) => setSelectedCameraId(e.target.value || null)}
+                  className="block min-w-0 flex-1 rounded-xl border border-[var(--line)] bg-white/50 px-3 py-2 text-xs font-semibold text-[var(--sea-ink)] focus:border-rose-500/50 focus:outline-none"
+                >
+                  {cameras.map((cam) => (
+                    <option key={cam.id} value={cam.id}>
+                      {cam.label || `Fotocamera ${cam.id.slice(0, 8)}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Scope Scanner Box */}
             <div className="scanner-frame relative flex aspect-square w-full items-center justify-center overflow-hidden border-2 border-[var(--line)] bg-stone-950 shadow-inner sm:max-w-sm sm:rounded-2xl">

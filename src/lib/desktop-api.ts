@@ -123,6 +123,23 @@ export async function cleanupAppData(): Promise<string | null> {
   return 'Dati locali (localStorage) rimossi.'
 }
 
+export async function openExternalUrl(url: string): Promise<boolean> {
+  const invoke = getTauriInvoke()
+
+  if (invoke) {
+    try {
+      await invoke('open_external_url', { url })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // Web fallback: window.open
+  window.open(url, '_blank', 'noopener,noreferrer')
+  return true
+}
+
 export async function resetLocalDatabaseFn() {
   await resetDesktopDatabase()
   return { success: true }

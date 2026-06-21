@@ -198,6 +198,48 @@ fn cleanup_app_data(app: AppHandle) -> Result<String, String> {
     }
 }
 
+/// Opens an external URL in the user's default browser.
+/// In Tauri's WebView, <a target="_blank"> does not open the system browser,
+/// so this command bridges that gap.
+#[tauri::command]
+fn open_external_url(url: String) -> Result<(), String> {
+    // Validate that it's an http/https URL to prevent arbitrary command execution
+    if !url.starts_with("https://") && !url.starts_with("http://") {
+        return Err("Solo URL http/https sono supportati.".to_string());
+    }
+
+    open_url(&url)
+}
+
+fn open_url(url: &str) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("cmd")
+            .args(["/C", "start", "", url])
+            .spawn()
+            .map(|_| ())
+            .map_err(|error| format!("Impossibile aprire il browser: {error}"))
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg(url)
+            .spawn()
+            .map(|_| ())
+            .map_err(|error| format!("Impossibile aprire il browser: {error}"))
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("xdg-open")
+            .arg(url)
+            .spawn()
+            .map(|_| ())
+            .map_err(|error| format!("Impossibile aprire il browser: {error}"))
+    }
+}
+
 fn sanitize_filename(filename: &str) -> String {
     let sanitized = filename
         .chars()
@@ -357,6 +399,7 @@ fn main() {
             write_desktop_db,
             reset_desktop_db,
             cleanup_app_data,
+            open_external_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -7,6 +7,15 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.29] - 2026-06-21
+
+### Corretto
+- Risolto crash "something went wrong" quando si cambia pagina dopo delle scansioni: cleanup dello scanner reso async con stop+clear corretto.
+- Risolto link "Apri release" che non apriva il browser in Tauri: aggiunto comando backend `open_external_url` che apre il browser di sistema.
+
+### Aggiunto
+- Selettore fotocamera nella pagina scanner: scelta tra le fotocamere disponibili sul sistema con UI dedicata.
+
 ## [1.0.28] - 2026-06-21
 
 ### Corretto
