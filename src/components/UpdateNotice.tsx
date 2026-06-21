@@ -4,7 +4,6 @@ import { checkForAvailableUpdate, getCurrentAppVersion, isVersionNewer } from '.
 import type { AppUpdateInfo } from '../lib/update-check'
 
 const DISMISSED_VERSION_KEY = 'the-club-update-dismissed-version'
-const FIRST_CHECK_DELAY_MS = 5000
 const CHECK_INTERVAL_MS = 60 * 60 * 1000 // 1 hour
 
 export default function UpdateNotice() {
@@ -12,15 +11,14 @@ export default function UpdateNotice() {
   const [hidden, setHidden] = useState(false)
 
   useEffect(() => {
-    const runCheck = () => {
-      void checkUpdate()
-    }
+    // Check immediately on mount — no delay
+    void checkUpdate()
 
-    const initialTimer = window.setTimeout(runCheck, FIRST_CHECK_DELAY_MS)
-    const intervalTimer = window.setInterval(runCheck, CHECK_INTERVAL_MS)
+    const intervalTimer = window.setInterval(() => {
+      void checkUpdate()
+    }, CHECK_INTERVAL_MS)
 
     return () => {
-      window.clearTimeout(initialTimer)
       window.clearInterval(intervalTimer)
     }
   }, [])
@@ -74,13 +72,18 @@ export default function UpdateNotice() {
   async function checkUpdate() {
     try {
       const availableUpdate = await checkForAvailableUpdate()
-      if (!availableUpdate) return
-
-      const dismissedVersion = localStorage.getItem(DISMISSED_VERSION_KEY)
-      if (dismissedVersion && !isVersionNewer(availableUpdate.version, dismissedVersion)) {
+      if (!availableUpdate) {
+        console.info('Update check: nessun aggiornamento disponibile.')
         return
       }
 
+      const dismissedVersion = localStorage.getItem(DISMISSED_VERSION_KEY)
+      if (dismissedVersion && !isVersionNewer(availableUpdate.version, dismissedVersion)) {
+        console.info('Update check: aggiornamento già dismissato:', dismissedVersion)
+        return
+      }
+
+      console.info('Update check: nuovo aggiornamento trovato:', availableUpdate.tagName)
       setUpdate((current) => {
         if (
           current &&

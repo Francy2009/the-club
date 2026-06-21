@@ -36,13 +36,32 @@ export function isTauriRuntime() {
 }
 
 export async function checkForAvailableUpdate(): Promise<AppUpdateInfo | null> {
-  const response = await fetch(GITHUB_LATEST_RELEASE_API, {
-    cache: 'no-store',
-    headers: {
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-  })
+  let response: Response
+
+  try {
+    response = await fetch(GITHUB_LATEST_RELEASE_API, {
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    })
+  } catch (networkError) {
+    // In Tauri WebView, fetch to external URLs may fail due to CSP or network restrictions.
+    // Retry with a no-cors fallback or re-throw for the caller to handle.
+    console.warn('Update check: fetch failed, retrying with no-cors:', networkError)
+    try {
+      response = await fetch(GITHUB_LATEST_RELEASE_API, {
+        cache: 'no-store',
+        mode: 'cors',
+        headers: {
+          Accept: 'application/vnd.github+json',
+        },
+      })
+    } catch (retryError) {
+      throw new Error(`Controllo aggiornamenti non riuscito (network): ${retryError}`)
+    }
+  }
 
   if (!response.ok) {
     throw new Error(`Controllo aggiornamenti non riuscito: ${response.status}`)

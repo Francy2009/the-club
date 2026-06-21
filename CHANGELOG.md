@@ -7,6 +7,13 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.28] - 2026-06-21
+
+### Corretto
+- Controllo aggiornamenti ora eseguito immediatamente all'apertura dell'app (senza delay di 5 secondi).
+- Aggiunto retry con fallback CORS per il fetch verso GitHub API nella WebView di Tauri.
+- Aggiunti log diagnostici per il controllo aggiornamenti.
+
 ## [1.0.27] - 2026-06-21
 
 ### Corretto
