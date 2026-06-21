@@ -7,6 +7,11 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.32] - 2026-06-21
+
+### Corretto
+- Fix build macOS: icone rigenerate con 8-bit RGBA invece di 16-bit (il convertitore ICNS di Tauri non supporta `Rgba16`).
+
 ## [1.0.31] - 2026-06-21
 
 ### Aggiunto
