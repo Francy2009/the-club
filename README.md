@@ -208,3 +208,7 @@ dovrebbe essere generato e committato insieme al codice Rust/Tauri.
 ## Licenza
 
 Il progetto è distribuito con licenza MIT. Vedi [LICENSE](LICENSE).
+
+### Disclaimer
+
+Il software è fornito "così com'è" (AS IS), senza alcuna garanzia esplicita o implicita, di commerciabilità o idoneità per uno scopo particolare. L'autore non è responsabile di eventuali danni diretti o indiretti derivanti dall'uso del software. L'utente è responsabile della gestione sicura dei dati (backup, permessi del sistema operativo, protezione dei file di backup e dei QR code).

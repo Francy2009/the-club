@@ -289,7 +289,7 @@ function AdminSettings() {
               Gestisci la password amministratore, scarica una copia completa dei dati e ripristina l'app da un backup quando serve.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[var(--line)] bg-white/30 p-3 text-xs font-bold text-[var(--sea-ink-soft)] dark:bg-white/5">
+          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[var(--line)] bg-white/30 p-3 text-xs font-bold text-[var(--sea-ink-soft)]">
             <span className="inline-flex items-center gap-1.5">
               <ShieldCheck className="h-4 w-4 text-emerald-500" />
               Admin
@@ -388,7 +388,7 @@ function AdminSettings() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-violet-500/20 bg-violet-500/10 p-3 text-xs font-semibold leading-relaxed text-violet-700 dark:text-violet-200">
+            <div className="rounded-xl border border-violet-500/20 bg-violet-500/10 p-3 text-xs font-semibold leading-relaxed text-violet-700">
               Minimo 8 caratteri, una maiuscola, un numero e un simbolo. Dopo il salvataggio le vecchie sessioni vengono chiuse.
             </div>
 
@@ -482,7 +482,7 @@ function AdminSettings() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-teal-500/20 bg-teal-500/10 p-3 text-xs font-semibold leading-relaxed text-teal-700 dark:text-teal-200">
+            <div className="rounded-xl border border-teal-500/20 bg-teal-500/10 p-3 text-xs font-semibold leading-relaxed text-teal-700">
               Ricorda domanda e risposta: in fase di recupero la domanda non viene mostrata, e la risposta non viene salvata in chiaro.
             </div>
 
@@ -529,14 +529,14 @@ function AdminSettings() {
                   type="button"
                   onClick={handleDownloadCsv}
                   disabled={isBusy}
-                  className="mobile-action inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-xs font-extrabold text-sky-700 transition hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:text-sky-200"
+                  className="mobile-action inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-xs font-extrabold text-sky-700 transition hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   {busyAction === 'csv' ? 'Creazione...' : 'Scarica CSV'}
                 </button>
               </div>
 
-              <div className="mt-4 rounded-xl border border-[var(--line)] bg-white/30 p-3 dark:bg-white/5">
+              <div className="mt-4 rounded-xl border border-[var(--line)] bg-white/30 p-3">
                 <div className="mb-3 flex items-start gap-2">
                   <FolderDown className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                   <div>
@@ -556,7 +556,7 @@ function AdminSettings() {
                     type="button"
                     onClick={handleChooseExportDirectory}
                     disabled={isBusy || !exportPreference.canChooseDirectory}
-                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:text-emerald-200"
+                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5 text-xs font-extrabold text-emerald-700 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                     title={exportPreference.canChooseDirectory ? 'Scegli una cartella' : 'Non supportato da questo ambiente'}
                   >
                     <FolderDown className="h-4 w-4" />
@@ -581,7 +581,7 @@ function AdminSettings() {
                 )}
               </div>
 
-              <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs font-semibold leading-relaxed text-amber-700 dark:text-amber-200">
+              <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs font-semibold leading-relaxed text-amber-700">
                 Il backup standard non contiene hash password o hash risposta recupero, ma include dati personali e token QR: tienilo su un supporto protetto, non in una chat pubblica.
               </div>
             </div>
@@ -651,7 +651,7 @@ function AdminSettings() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs font-semibold leading-relaxed text-red-700 dark:text-red-200">
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs font-semibold leading-relaxed text-red-700">
               Questa operazione cancella tutti i soci, presenze e impostazioni salvate su questo dispositivo. Su desktop rimuove la cartella dati dell'app. Fai un backup prima di procedere.
             </div>
 

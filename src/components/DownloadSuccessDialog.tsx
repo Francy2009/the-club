@@ -77,7 +77,7 @@ export default function DownloadSuccessDialog() {
         </div>
 
         <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3">
-          <p className="text-[11px] font-extrabold uppercase text-emerald-700 dark:text-emerald-200">
+          <p className="text-[11px] font-extrabold uppercase text-emerald-700">
             File salvato
           </p>
           <p className="mt-1 text-sm font-bold leading-snug text-[var(--sea-ink)]">
@@ -86,7 +86,7 @@ export default function DownloadSuccessDialog() {
         </div>
 
         {openError && (
-          <p className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs font-semibold leading-relaxed text-amber-700 dark:text-amber-200">
+          <p className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs font-semibold leading-relaxed text-amber-700">
             {openError}
           </p>
         )}

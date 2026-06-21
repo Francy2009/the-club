@@ -166,7 +166,7 @@ function Login() {
           ) : (
             <>
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
-                <p className="text-xs font-medium text-amber-700 dark:text-amber-200">
+                <p className="text-xs font-medium text-amber-700">
                   Inserisci la risposta personale scelta durante la configurazione per recuperare l'accesso.
                 </p>
               </div>
