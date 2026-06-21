@@ -114,3 +114,5 @@ public/       asset statici, favicon, manifest
 Licenza MIT — vedi [LICENSE](LICENSE).
 
 Il software è fornito "così com'è" (AS IS), senza garanzia di alcun tipo. L'autore non è responsabile di danni derivanti dall'uso del software. L'utente è responsabile della gestione sicura dei propri dati.
+
+La documentazione di questo progetto (README, PRIVACY.md, SECURITY.md) descrive il comportamento tecnico del software e non costituisce consulenza legale. Per la conformità a normative privacy (GDPR o altre) rivolgersi a un consulente qualificato.
