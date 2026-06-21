@@ -7,6 +7,12 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.30] - 2026-06-21
+
+### Corretto
+- Risolto errore "cannot transition to a new state, already under transition" dello scanner QR: l'istanza viene ora distrutta e ricreata ad ogni avvio invece di essere riusata.
+- Semplificato template NSIS Windows: rimosso hook complesso che causava errori di build e richieste di conferma inutili durante l'aggiornamento. La pulizia dati su disinstallazione manuale resta disponibile dal pulsante nelle impostazioni.
+
 ## [1.0.29] - 2026-06-21
 
 ### Corretto

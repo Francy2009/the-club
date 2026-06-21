@@ -282,26 +282,34 @@ function ScannerPage() {
 
     const startScanner = async () => {
       try {
-        // Create scanner instance if not already created
-        if (!scannerRef.current) {
-          scannerRef.current = new Html5Qrcode(SCANNER_ELEMENT_ID, {
-            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-            verbose: false,
-          })
+        // Always create a fresh scanner instance to avoid state manager
+        // transition errors ("cannot transition to a new state, already under transition")
+        if (scannerRef.current) {
+          try {
+            if (scannerRef.current.isScanning) {
+              await scannerRef.current.stop()
+            }
+            scannerRef.current.clear()
+          } catch {
+            // ignore cleanup errors from previous instance
+          }
+          scannerRef.current = null
         }
 
-        const scanner = scannerRef.current
+        // Wait one tick for DOM to be ready
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        if (cancelled) return
 
-        // Stop if already scanning (e.g. switching cameras)
-        if (scanner.isScanning) {
-          await scanner.stop().catch(() => {})
-        }
+        const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID, {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+          verbose: false,
+        })
+        scannerRef.current = scanner
 
         // Determine camera config
         let cameraConfig: string | MediaTrackConstraints
 
         if (selectedCameraId) {
-          // User-selected camera
           cameraConfig = selectedCameraId
         } else {
           // Auto-detect: prefer back/environment camera
@@ -341,6 +349,8 @@ function ScannerPage() {
 
         if (cancelled) {
           await scanner.stop().catch(() => {})
+          scanner.clear()
+          scannerRef.current = null
         }
       } catch (err: any) {
         if (cancelled) return
@@ -373,8 +383,22 @@ function ScannerPage() {
     return () => {
       cancelled = true
       const scanner = scannerRef.current
-      if (scanner && scanner.isScanning) {
-        void scanner.stop().then(() => {}).catch(() => {})
+      if (scanner) {
+        if (scanner.isScanning) {
+          scanner
+            .stop()
+            .then(() => {
+              try { scanner.clear() } catch { /* ignore */ }
+              scannerRef.current = null
+            })
+            .catch(() => {
+              try { scanner.clear() } catch { /* ignore */ }
+              scannerRef.current = null
+            })
+        } else {
+          try { scanner.clear() } catch { /* ignore */ }
+          scannerRef.current = null
+        }
       }
     }
   }, [mounted, active, selectedCameraId, handleScanSuccess, handleScanError])
@@ -392,39 +416,6 @@ function ScannerPage() {
         // Ignore — will be handled by the scanner start effect
       })
   }, [mounted])
-
-  // Cleanup scanner on unmount — properly stop and clear
-  useEffect(() => {
-    return () => {
-      const scanner = scannerRef.current
-      if (scanner) {
-        if (scanner.isScanning) {
-          scanner
-            .stop()
-            .then(() => {
-              scanner.clear()
-              scannerRef.current = null
-            })
-            .catch(() => {
-              // Force clear even if stop fails
-              try {
-                scanner.clear()
-              } catch {
-                // ignore
-              }
-              scannerRef.current = null
-            })
-        } else {
-          try {
-            scanner.clear()
-          } catch {
-            // ignore
-          }
-          scannerRef.current = null
-        }
-      }
-    }
-  }, [])
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
