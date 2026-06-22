@@ -1,6 +1,6 @@
 [package]
 name = "the-club"
-version = "1.0.0"
+version = "1.0.1"
 description = "The Club - Club Privato Management"
 edition = "2021"
 authors = ["Francesco Dell'Orto"]

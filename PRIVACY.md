@@ -135,7 +135,7 @@ Revoca:        Immediata su logout, cambio password, reset admin, scadenza
 | Login | 15 min | 8 | 15 min |
 | Recupero password | 15 min | 5 | 30 min |
 
-Basato su username normalizzato (lowercase), persistente su SQLite.
+Basato su username normalizzato (lowercase). Persistente su SQLite nella versione server, in memoria nella versione desktop.
 
 ### 5.4 Frase di recupero
 

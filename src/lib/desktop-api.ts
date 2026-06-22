@@ -49,6 +49,77 @@ type FnArgs = { data?: Record<string, unknown> } | undefined
 type TauriInvoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
 type StoredDbSource = 'tauri-file' | 'legacy-localStorage' | 'localStorage' | 'empty'
 
+// --- In-memory rate limiting (brute force protection) ---
+type RateLimitType = 'login' | 'recovery'
+
+interface RateLimitConfig {
+  maxAttempts: number
+  windowMs: number
+  lockoutMs: number
+}
+
+const RATE_LIMIT_CONFIGS: Record<RateLimitType, RateLimitConfig> = {
+  login: { maxAttempts: 8, windowMs: 15 * 60 * 1000, lockoutMs: 15 * 60 * 1000 },
+  recovery: { maxAttempts: 5, windowMs: 15 * 60 * 1000, lockoutMs: 30 * 60 * 1000 },
+}
+
+interface RateLimitEntry {
+  attempts: number
+  firstAttemptAt: number
+  lockedUntil: number
+}
+
+const rateLimitStore = new Map<string, RateLimitEntry>()
+
+function rateLimitKey(identifier: string, type: RateLimitType) {
+  return `${type}:${identifier.toLowerCase()}`
+}
+
+function checkRateLimitAllowed(identifier: string, type: RateLimitType): { allowed: boolean; retryAfterMinutes: number } {
+  const config = RATE_LIMIT_CONFIGS[type]
+  const key = rateLimitKey(identifier, type)
+  const now = Date.now()
+  const entry = rateLimitStore.get(key)
+
+  if (entry && entry.lockedUntil > now) {
+    const retryAfterMinutes = Math.ceil((entry.lockedUntil - now) / (60 * 1000))
+    return { allowed: false, retryAfterMinutes }
+  }
+
+  // Reset if window expired
+  if (entry && now - entry.firstAttemptAt > config.windowMs) {
+    rateLimitStore.delete(key)
+  }
+
+  return { allowed: true, retryAfterMinutes: 0 }
+}
+
+function recordRateLimitFailure(identifier: string, type: RateLimitType): { locked: boolean; retryAfterMinutes: number } {
+  const config = RATE_LIMIT_CONFIGS[type]
+  const key = rateLimitKey(identifier, type)
+  const now = Date.now()
+  let entry = rateLimitStore.get(key)
+
+  if (!entry || now - entry.firstAttemptAt > config.windowMs) {
+    entry = { attempts: 0, firstAttemptAt: now, lockedUntil: 0 }
+    rateLimitStore.set(key, entry)
+  }
+
+  entry.attempts += 1
+
+  if (entry.attempts >= config.maxAttempts) {
+    entry.lockedUntil = now + config.lockoutMs
+    const retryAfterMinutes = Math.ceil(config.lockoutMs / (60 * 1000))
+    return { locked: true, retryAfterMinutes }
+  }
+
+  return { locked: false, retryAfterMinutes: 0 }
+}
+
+function clearRateLimitFailures(identifier: string, type: RateLimitType) {
+  rateLimitStore.delete(rateLimitKey(identifier, type))
+}
+
 function getTauriInvoke(): TauriInvoke | null {
   if (typeof window === 'undefined') return null
 
@@ -492,13 +563,24 @@ export async function loginFn(args?: FnArgs) {
   assertRecord(data)
   const username = requiredString(data, 'username', 80).toLowerCase()
   const password = requiredString(data, 'password', 256)
+
+  const check = checkRateLimitAllowed(username, 'login')
+  if (!check.allowed) {
+    throw new Error(`Troppi tentativi non riusciti. Riprova tra ${check.retryAfterMinutes} min.`)
+  }
+
   const db = await loadDb()
   const member = db.members.find((candidate) => candidate.username.toLowerCase() === username)
 
   if (!member || !(await verifyPassword(password, member.password_hash))) {
+    const result = recordRateLimitFailure(username, 'login')
+    if (result.locked) {
+      throw new Error(`Troppi tentativi non riusciti. Riprova tra ${result.retryAfterMinutes} min.`)
+    }
     throw new Error('Credenziali non valide')
   }
 
+  clearRateLimitFailures(username, 'login')
   db.current_user_id = member.id
   await saveDb(db)
 
@@ -614,6 +696,12 @@ export async function recoverPasswordFn(args?: FnArgs) {
   const username = requiredString(data, 'username', 80).toLowerCase()
   const recoveryAnswer = requiredString(data, 'recovery_answer', 500)
   const newPassword = requiredString(data, 'new_password', 256)
+
+  const check = checkRateLimitAllowed(username, 'recovery')
+  if (!check.allowed) {
+    throw new Error(`Troppi tentativi di recupero. Riprova tra ${check.retryAfterMinutes} min.`)
+  }
+
   const member = db.members.find((candidate) => candidate.username.toLowerCase() === username)
 
   assertStrongPassword(newPassword, 'La nuova password deve contenere almeno 8 caratteri, una maiuscola, un numero e un simbolo.')
@@ -629,6 +717,10 @@ export async function recoverPasswordFn(args?: FnArgs) {
       (await verifyPassword(normalizeLegacyRecoveryPhrase(recoveryAnswer), member.recovery_phrase_hash))
     )
   ) {
+    const result = recordRateLimitFailure(username, 'recovery')
+    if (result.locked) {
+      throw new Error(`Troppi tentativi di recupero. Riprova tra ${result.retryAfterMinutes} min.`)
+    }
     throw new Error('Username o risposta di recupero non validi.')
   }
 
@@ -636,6 +728,7 @@ export async function recoverPasswordFn(args?: FnArgs) {
     throw new Error('La nuova password deve essere diversa da quella attuale')
   }
 
+  clearRateLimitFailures(username, 'recovery')
   member.password_hash = await digestPassword(newPassword)
   member.password_changed = true
   member.must_setup = false

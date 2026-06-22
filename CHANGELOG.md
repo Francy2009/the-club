@@ -7,6 +7,14 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-22
+
+### Aggiunto
+- Protezione brute force anche sulla versione desktop: dopo troppi tentativi di login o recupero password sbagliati, l'accesso viene bloccato temporaneamente (15 min per il login, 30 min per il recupero). Uguale a quello che c'era già sulla versione server.
+
+### Sicurezza
+- Rate limiting in memoria su login (8 tentativi / 15 min) e recupero password (5 tentativi / 15 min) nella versione desktop
+
 ## [1.0.0] - 2026-06-21
 
 Prima release pubblica.
@@ -43,5 +51,6 @@ Prima release pubblica.
 - TypeScript strict mode
 - Tailwind CSS
 
-[Unreleased]: https://github.com/Francy2009/The-Club/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Francy2009/The-Club/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.0
