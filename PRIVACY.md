@@ -128,28 +128,19 @@ Durata:        7 giorni (rolling)
 Revoca:        Immediata su logout, cambio password, reset admin, scadenza
 ```
 
-### 5.3 Rate limiting (brute force)
-
-| Endpoint | Finestra | Max tentativi | Lockout |
-|----------|----------|---------------|---------|
-| Login | 15 min | 8 | 15 min |
-| Recupero password | 15 min | 5 | 30 min |
-
-Basato su username normalizzato (lowercase). Persistente su SQLite nella versione server, in memoria nella versione desktop.
-
-### 5.4 Frase di recupero
+### 5.3 Frase di recupero
 
 - Indipendente dalla password (hash separato, salt separato)
 - Requisiti: da 1 a 4 parole, 2-80 caratteri, conferma identica
 - Normalizzazione: `trim()` + `replace(/\s+/g, ' ')` + minuscole
 
-### 5.5 Token QR tessere
+### 5.4 Token QR tessere
 
 - Generazione: `crypto.randomBytes(32).toString('base64url')` (256 bit entropy)
 - Univoco per socio (`@unique` in Prisma)
 - Chiunque possieda il token può registrare una presenza → va trattato come credenziale
 
-### 5.6 Altre misure
+### 5.5 Altre misure
 
 - Content Security Policy nel bundle Tauri
 - Prepared statements (Prisma ORM) → prevenzione SQL injection
