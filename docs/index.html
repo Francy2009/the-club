@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="The Club — app desktop per gestire soci, tessere QR e presenze di un club privato. Locale, senza cloud, open source." />
+  <title>The Club — Gestione soci e presenze</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Animated background -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-1" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-2" aria-hidden="true"></div>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <span class="nav-logo-dot"></span>
+        <span class="nav-logo-text">The Club</span>
+      </a>
+      <div class="nav-links">
+        <a href="#funzioni">Funzioni</a>
+        <a href="#perche">Perché</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/Francy2009/the-club" target="_blank" rel="noopener" class="nav-cta">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-content reveal">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        Open Source · MIT License
+      </div>
+      <h1 class="hero-title">
+        Gestione soci,<br />
+        <span class="hero-title-gradient">tessere QR e presenze.</span>
+      </h1>
+      <p class="hero-subtitle">
+        Un'app desktop per club privati e associazioni. Tutto sul tuo computer:
+        niente cloud, niente abbonamenti, niente account da creare.
+      </p>
+      <div class="hero-actions">
+        <a href="https://github.com/Francy2009/the-club/releases" target="_blank" rel="noopener" class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Scarica
+        </a>
+        <a href="https://github.com/Francy2009/the-club" target="_blank" rel="noopener" class="btn btn-ghost">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+          Codice sorgente
+        </a>
+      </div>
+      <div class="hero-platforms">
+        <span class="hero-platform">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5.5 10 4.5v7H3v-6ZM10 11h11V3.5l-11 1.5v6Zm0 1v7l11-1.5V12H10Zm-7 0v6l7 1v-7H3Z"/></svg>
+          Windows
+        </span>
+        <span class="hero-platform">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c-1.5 0-3 1-3 3 0 2 2 4 3 4s3-2 3-4c0-2-1.5-3-3-3Zm-4 8c-2 0-4 2-4 4 0 3 2 5 4 5s2-1 4-1 2 1 4 1 4-2 4-5c0-2-2-4-4-4-2 0-3 1-4 1s-2-1-4-1Z"/></svg>
+          macOS
+        </span>
+        <span class="hero-platform">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+          Linux
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Features -->
+  <section id="funzioni" class="section">
+    <div class="section-inner">
+      <h2 class="section-title reveal">Cosa fa</h2>
+      <div class="features-grid">
+        <div class="feature-card reveal" style="--delay: 0ms">
+          <div class="feature-icon feature-icon-rose">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3>Gestione soci</h3>
+          <p>Crea, modifica, rinnovi ed elimini i soci del club. Anagrafica, numero tessera, scadenza annuale.</p>
+        </div>
+        <div class="feature-card reveal" style="--delay: 80ms">
+          <div class="feature-icon feature-icon-amber">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          </div>
+          <h3>Tessere QR</h3>
+          <p>Genera tessere con QR code permanente per ogni socio. Il QR identifica la persona, non scade al rinnovo.</p>
+        </div>
+        <div class="feature-card reveal" style="--delay: 160ms">
+          <div class="feature-icon feature-icon-teal">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7"/><path d="M3 7l9-4 9 4"/><path d="M3 7h18"/></svg>
+          </div>
+          <h3>Scanner presenze</h3>
+          <p>Registra gli ingressi scansionando il QR della tessera, oppure cercando il socio per nome o numero.</p>
+        </div>
+        <div class="feature-card reveal" style="--delay: 0ms">
+          <div class="feature-icon feature-icon-violet">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+          </div>
+          <h3>Riepilogo e report</h3>
+          <p>Visualizza le presenze mensili, esporta PDF e CSV. Selettore mese per consultare lo storico.</p>
+        </div>
+        <div class="feature-card reveal" style="--delay: 80ms">
+          <div class="feature-icon feature-icon-emerald">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <h3>Backup e export</h3>
+          <p>Esporta backup completi (JSON), fogli di calcolo (CSV) e tessere PDF. Tutto sul tuo filesystem.</p>
+        </div>
+        <div class="feature-card reveal" style="--delay: 160ms">
+          <div class="feature-icon feature-icon-sky">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Sicurezza</h3>
+          <p>Password con hash PBKDF2-SHA512, sessioni protette, CSP. Nessuna telemetria, nessun tracking.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why -->
+  <section id="perche" class="section section-alt">
+    <div class="section-inner">
+      <h2 class="section-title reveal">Perché The Club</h2>
+      <div class="why-grid">
+        <div class="why-item reveal" style="--delay: 0ms">
+          <div class="why-number">01</div>
+          <h3>Tutto in locale</h3>
+          <p>I dati restano sul tuo computer. Niente cloud, niente server di terze parti, niente account online. L'app non invia nulla da nessuna parte.</p>
+        </div>
+        <div class="why-item reveal" style="--delay: 100ms">
+          <div class="why-number">02</div>
+          <h3>Gratis e open source</h3>
+          <p>Codice verificabile, modificabile, ridistribuibile. Licenza MIT. Niente abbonamenti, niente trial, niente pubblicità.</p>
+        </div>
+        <div class="why-item reveal" style="--delay: 200ms">
+          <div class="why-number">03</div>
+          <h3>Privacy per design</h3>
+          <p>Zero telemetria, zero analytics, zero tracking. L'unica comunicazione di rete è il controllo aggiornamenti verso GitHub.</p>
+        </div>
+        <div class="why-item reveal" style="--delay: 300ms">
+          <div class="why-number">04</div>
+          <h3>Multi-piattaforma</h3>
+          <p>Windows, macOS e Linux. Stessa app, stessi dati, stessa interfaccia. Si installa con un doppio clic.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="section">
+    <div class="section-inner section-inner-narrow">
+      <h2 class="section-title reveal">Domande frequenti</h2>
+      <div class="faq-list">
+        <details class="faq-item reveal">
+          <summary>Dove finiscono i dati?</summary>
+          <p>Sul tuo computer. Nella versione desktop, tutto viene salvato in un file locale nella cartella dati dell'app. L'app non invia nulla a server esterni.</p>
+        </details>
+        <details class="faq-item reveal">
+          <summary>Serve internet?</summary>
+          <p>No. L'app funziona completamente offline. L'unica comunicazione di rete è il controllo aggiornamenti verso GitHub, che avviene all'apertura e non invia dati utente.</p>
+        </details>
+        <details class="faq-item reveal">
+          <summary>Come faccio il backup?</summary>
+          <p>Dalle impostazioni admin puoi esportare backup completi (JSON) o fogli di calcolo (CSV). I file finiscono nella cartella Download. Conservali su un supporto sicuro.</p>
+        </details>
+        <details class="faq-item reveal">
+          <summary>La fotocamera non funziona</summary>
+          <p>Verifica che il permesso fotocamera sia attivato nelle impostazioni di sistema. Su Windows: Impostazioni → Privacy → Fotocamera. Su macOS: Impostazioni di Sistema → Privacy → Fotocamera. Su Linux: assicurati di essere nel gruppo <code>video</code>. In alternativa, usa la ricerca manuale per nome o numero tessera.</p>
+        </details>
+        <details class="faq-item reveal">
+          <summary>Posso usarla su più computer?</summary>
+          <p>L'app è progettata per uso locale su un singolo computer. Per usare gli stessi dati su un altro computer, esporta il backup dal primo e ripristinalo sul secondo.</p>
+        </details>
+        <details class="faq-item reveal">
+          <summary>È sicura?</summary>
+          <p>Le password sono hashate con PBKDF2-SHA512 (310.000 iterazioni). Le sessioni usano token hashati con cookie HttpOnly e SameSite. C'è una Content Security Policy. Nessuna telemetria. Il codice è open source e verificabile.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="cta-inner reveal">
+      <h2 class="cta-title">Provala</h2>
+      <p class="cta-subtitle">Scarica, installa, configura. Pronta in due minuti.</p>
+      <a href="https://github.com/Francy2009/the-club/releases" target="_blank" rel="noopener" class="btn btn-primary btn-lg">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Vai ai download
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="footer-dot"></span>
+        The Club
+      </div>
+      <p class="footer-text">
+        Progetto open source · Licenza MIT · <a href="https://github.com/Francy2009/the-club" target="_blank" rel="noopener">GitHub</a>
+      </p>
+      <p class="footer-disclaimer">
+        Il software è fornito "così com'è", senza garanzia di alcun tipo.
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // Reveal on scroll
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+    )
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el))
+  </script>
+</body>
+</html>
