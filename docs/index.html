@@ -9,16 +9,21 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="icon" type="image/svg+xml" href="../public/favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
 </head>
 <body>
+  <!-- Scroll progress -->
+  <div class="scroll-progress" aria-hidden="true"></div>
+
   <!-- Animated background -->
   <div class="bg-grid" aria-hidden="true"></div>
   <div class="bg-glow bg-glow-1" aria-hidden="true"></div>
   <div class="bg-glow bg-glow-2" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-3" aria-hidden="true"></div>
 
   <!-- Nav -->
-  <nav class="nav">
+  <nav class="nav" id="nav">
     <div class="nav-inner">
       <a href="#" class="nav-logo">
         <span class="nav-logo-dot"></span>
@@ -249,6 +254,40 @@
         const rect = card.getBoundingClientRect()
         card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
         card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+      })
+    })
+
+    // Scroll progress bar
+    const progress = document.querySelector('.scroll-progress')
+    window.addEventListener('scroll', () => {
+      const scrollTop = window.scrollY
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight
+      const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0
+      progress.style.width = `${pct}%`
+    })
+
+    // Nav background on scroll
+    const nav = document.getElementById('nav')
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 40) {
+        nav.classList.add('nav-scrolled')
+      } else {
+        nav.classList.remove('nav-scrolled')
+      }
+    })
+
+    // Smooth anchor offset for sticky nav
+    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+      anchor.addEventListener('click', (e) => {
+        const targetId = anchor.getAttribute('href')
+        if (targetId === '#') return
+        const target = document.querySelector(targetId)
+        if (target) {
+          e.preventDefault()
+          const offset = 80
+          const top = target.getBoundingClientRect().top + window.scrollY - offset
+          window.scrollTo({ top, behavior: 'smooth' })
+        }
       })
     })
   </script>
