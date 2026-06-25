@@ -7,6 +7,12 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-06-25
+
+### Fix
+- **Persistenza dati sugli aggiornamenti**: la cartella dati dell'app dipende dall'identifier; la rinomina del progetto da "Gestore Pub" (`com.gestore.pub`) a "The Club" (`com.the.club`) spostava la cartella dati, rendendo invisibile il database locale scritto dalla build precedente. Al primo avvio della nuova build il DB risultava assente e l'app creava un admin vuoto: sembrava un reset. Ora, se il file del DB nella cartella attuale non esiste, l'app lo recupera una-tantum dalla cartella della build precedente e lo migra nel percorso attuale. Corretto su tutte le piattaforme (`.deb`, `.rpm`, AppImage, Windows, macOS).
+- **Pacchetto `.deb` su Linux**: il `postrm` cancellava la cartella dati utente anche su `remove` (e non solo su `purge`). Poiché molti flussi di aggiornamento su Ubuntu/GNOME Software fanno "rimuovi vecchia + installa nuova" passando per `remove`, l'aggiornamento poteva azzerare i dati. Ora la cartella dati viene rimossa solo su `purge`, in conformità alla policy Debian; la rimozione esplicita resta disponibile in-app (Impostazioni → Rimuovi dati locali).
+
 ## [1.0.2] - 2026-06-25
 
 ### Sicurezza

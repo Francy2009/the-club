@@ -13,6 +13,12 @@ const DESKTOP_DB_FILENAME: &str = "desktop-db.json";
 const DESKTOP_DB_TMP_FILENAME: &str = "desktop-db.json.tmp";
 const MAX_DESKTOP_DB_BYTES: usize = 50 * 1024 * 1024;
 const MAX_EXPORT_BYTES: usize = 100 * 1024 * 1024;
+// Identifier usato prima della rinomina del progetto ("Gestore Pub" -> "The Club").
+// L'app data dir dipende dall'identifier, quindi cambiandolo i dati scritti dalla
+// vecchia build (in .../<LEGACY_APP_IDENTIFIER>/desktop-db.json) diventavano
+// invisibili alla nuova, che cercava in .../com.the.club/ e creava un DB vuoto:
+// sembrava un reset. Usato per una migrazione una-tantum (vedi read_desktop_db).
+const LEGACY_APP_IDENTIFIER: &str = "com.gestore.pub";
 
 #[tauri::command]
 fn save_export_file(filename: String, bytes: Vec<u8>) -> Result<Vec<String>, String> {
@@ -83,15 +89,66 @@ fn read_desktop_db(app: AppHandle) -> Result<Option<String>, String> {
             return Err("Database locale troppo grande.".to_string());
         }
         Ok(_) => {}
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return migrate_legacy_desktop_db(&app, &db_path);
+        }
         Err(error) => return Err(format!("Impossibile leggere il database locale: {error}")),
     }
 
     match fs::read_to_string(&db_path) {
         Ok(contents) => Ok(Some(contents)),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            migrate_legacy_desktop_db(&app, &db_path)
+        }
         Err(error) => Err(format!("Impossibile leggere il database locale: {error}")),
     }
+}
+
+/// Migrazione una-tantum: se il file del DB nella cartella dati attuale
+/// (com.the.club) non esiste, cerca il file scritto dalla vecchia build
+/// "Gestore Pub" (identifier com.gestore.pub) nella stessa cartella base
+/// e, se presente, lo copia nel percorso attuale. Così chi aggiorna dalla
+/// vecchia build mantiene i dati su tutte le piattaforme (.deb, .rpm,
+/// AppImage, Windows, macOS). No-op se non c'è un file legacy.
+fn migrate_legacy_desktop_db(app: &AppHandle, db_path: &Path) -> Result<Option<String>, String> {
+    let Some(legacy_path) = legacy_desktop_db_path(app) else {
+        return Ok(None);
+    };
+
+    let legacy_metadata = match fs::metadata(&legacy_path) {
+        Ok(metadata) if metadata.len() > MAX_DESKTOP_DB_BYTES as u64 => {
+            return Err("Database locale (legacy) troppo grande.".to_string());
+        }
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => {
+            return Err(format!("Impossibile leggere il database locale legacy: {error}"));
+        }
+    };
+    let _ = legacy_metadata;
+
+    let contents = match fs::read_to_string(&legacy_path) {
+        Ok(contents) => contents,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => {
+            return Err(format!("Impossibile leggere il database locale legacy: {error}"));
+        }
+    };
+
+    // Scrivi il DB migrato nel percorso attuale (scrittura atomica).
+    write_db_atomic(db_path, &contents)?;
+
+    Ok(Some(contents))
+}
+
+/// Percorso del file DB scritto dalla vecchia build "Gestore Pub".
+/// Derivato dalla cartella dati attuale sostituendo il segmento dell'identifier
+/// (es. ~/.local/share/com.the.club -> ~/.local/share/com.gestore.pub su Linux;
+/// %APPDATA%\com.gestore.pub su Windows; ~/Library/Application Support/com.gestore.pub su macOS).
+fn legacy_desktop_db_path(app: &AppHandle) -> Option<PathBuf> {
+    let app_data_dir = app.path().app_data_dir().ok()?;
+    let base = app_data_dir.parent()?;
+    Some(base.join(LEGACY_APP_IDENTIFIER).join(DESKTOP_DB_FILENAME))
 }
 
 #[tauri::command]
@@ -101,6 +158,11 @@ fn write_desktop_db(app: AppHandle, contents: String) -> Result<(), String> {
     }
 
     let db_path = desktop_db_path(&app)?;
+    write_db_atomic(&db_path, &contents)
+}
+
+/// Scrittura atomica del DB locale: scrive su file temporaneo, fa sync, poi rename.
+fn write_db_atomic(db_path: &Path, contents: &str) -> Result<(), String> {
     let tmp_path = db_path.with_file_name(DESKTOP_DB_TMP_FILENAME);
     let mut file = OpenOptions::new()
         .write(true)
@@ -115,12 +177,12 @@ fn write_desktop_db(app: AppHandle, contents: String) -> Result<(), String> {
         .map_err(|error| format!("Impossibile completare il salvataggio del database locale: {error}"))?;
     drop(file);
 
-    if let Err(rename_error) = fs::rename(&tmp_path, &db_path) {
+    if let Err(rename_error) = fs::rename(&tmp_path, db_path) {
         if db_path.exists() {
-            fs::remove_file(&db_path)
+            fs::remove_file(db_path)
                 .map_err(|error| format!("Impossibile aggiornare il database locale: {error}"))?;
         }
-        fs::rename(&tmp_path, &db_path)
+        fs::rename(&tmp_path, db_path)
             .map_err(|error| format!("Impossibile aggiornare il database locale: {rename_error}; {error}"))?;
     }
 
