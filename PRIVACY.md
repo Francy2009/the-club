@@ -34,7 +34,7 @@ L'app gestisce i dati strettamente necessari al funzionamento del club:
 | **Anagrafica soci** | Nome, Cognome, Numero tessera (opzionale), Username univoco |
 | **Date** | Data iscrizione, Data scadenza tessera (opzionale) |
 | **Presenze** | Timestamp check-in, Giorno check-in, Flag socio eliminato |
-| **Autenticazione** | Username, hash password (PBKDF2-SHA512), hash risposta recupero (PBKDF2-SHA512), dati recupero protetti |
+| **Autenticazione** | Username, hash password (PBKDF2-SHA512), hash risposta recupero (PBKDF2-SHA512), domanda di recupero (in chiaro solo nel file desktop; hashata in modalità server) |
 | **Token QR** | Token base64url 32 byte, univoco per tessera |
 | **Export/Backup** | JSON con anagrafica, presenze, ruoli, dati recupero non segreti e token QR; CSV senza hash |
 
@@ -117,6 +117,8 @@ Formato:       pbkdf2_sha512$iterations$salt$hash (hex)
 - Password e risposta di recupero usano **salt indipendenti**
 - Confronto in **constant-time** (`crypto.timingSafeEqual`)
 - Supporto legacy per migrazione da vecchi hash (1.000 iterazioni)
+
+> **Nota modalità desktop**: nella versione desktop il file `desktop-db.json` salva la **domanda di recupero in chiaro** (serve per mostrarla all'amministratore durante il recupero password), mentre la **risposta di recupero è hashata**. Nella modalità server/sviluppo (Prisma/SQLite) anche la domanda di recupero viene hashata e non viene mostrata in chiaro.
 
 ### 5.2 Gestione sessioni
 

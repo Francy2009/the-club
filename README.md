@@ -74,7 +74,7 @@ I backup contengono dati personali e token QR: conservali su un supporto sicuro,
 ## Sicurezza
 
 - Password con hash PBKDF2-SHA512
-- Dati di recupero protetti (risposta salvata come hash)
+- Risposta di recupero salvata come hash; la domanda di recupero è in chiaro solo nel file locale dell'app desktop
 - Content Security Policy nel bundle Tauri
 - Backup standard senza hash password
 - Protezione contro CSV formula injection
