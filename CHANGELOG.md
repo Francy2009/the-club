@@ -7,6 +7,9 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+### Sicurezza
+- Hardening del layer desktop Tauri: aggiunte capability esplicite con permessi minimi e disabilitata l'esposizione globale dell'API Tauri (`withGlobalTauri: false`). Questo riduce la superficie d'attacco in caso di compromissione del frontend, limitando i comandi Rust invocabili solo a quelli strettamente necessari.
+
 ## [1.0.1] - 2026-06-22
 
 ### Sicurezza

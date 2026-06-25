@@ -1,0 +1,39 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main The Club window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:webview:default",
+    "shell:default",
+    "opener:default",
+    "dialog:default",
+    "fs:default",
+    {
+      "identifier": "fs:allow-download-write",
+      "allow": [{ "path": "$DOWNLOAD" }]
+    },
+    {
+      "identifier": "fs:allow-app-write",
+      "allow": [{ "path": "$APPLOCALDATA/*" }]
+    },
+    {
+      "identifier": "fs:allow-app-read",
+      "allow": [{ "path": "$APPLOCALDATA/*" }]
+    },
+    {
+      "identifier": "allow-custom-commands",
+      "allow": [
+        "save_export_file",
+        "open_export_directory",
+        "read_desktop_db",
+        "write_desktop_db",
+        "reset_desktop_db",
+        "cleanup_app_data",
+        "open_external_url"
+      ]
+    }
+  ]
+}
