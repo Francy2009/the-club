@@ -7,6 +7,8 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-25
+
 ### Sicurezza
 - Hardening del layer desktop Tauri: aggiunte capability esplicite con permessi minimi e disabilitata l'esposizione globale dell'API Tauri (`withGlobalTauri: false`). Questo riduce la superficie d'attacco in caso di compromissione del frontend, limitando i comandi Rust invocabili solo a quelli strettamente necessari.
 
@@ -50,6 +52,7 @@ Prima release pubblica.
 - TypeScript strict mode
 - Tailwind CSS
 
-[Unreleased]: https://github.com/Francy2009/The-Club/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/Francy2009/The-Club/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.2
 [1.0.1]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.0
