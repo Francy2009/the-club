@@ -147,6 +147,9 @@ function CreateMember() {
       doc.addImage(qrDataUrl, 'PNG', 50, 12, 25, 25)
 
       // 5. Footer small description
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(4.8)
+      doc.setTextColor(65, 97, 102)
       doc.text('QR personale statico per check-in ingresso', 8, 45)
       doc.text('Mostrare questa tessera al personale del club', 48, 45)
 

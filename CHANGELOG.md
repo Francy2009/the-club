@@ -7,6 +7,12 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-06-25
+
+### Fix
+- **Riepilogo, selettore del mese delle scadenze**: andava solo all'indietro, da questo mese fino a un anno prima. Per le tessere in scadenza ha più senso guardare avanti, per sapere quali soci scadranno nei prossimi mesi e poter stampare le tessere in anticipo. Ora il selettore parte da questo mese e va avanti fino a un anno. Il selettore del riepilogo eventi resta all'indietro, perché gli eventi si chiudono mese per mese e si rivedono a posteriori.
+- **PDF della tessera appena creato il socio**: la tessera scaricata subito dopo aver creato il profilo mostrava in fondo due scritte rosse, grandi e sovrapposte. Il footer ereditava il font grande e il colore rosso usati poco sopra per il numero tessera, senza mai resettarli. Ora il footer è identico a quello della tessera scaricabile dalla pagina soci: testo grigio, piccolo, niente sovrapposizione. I due PDF adesso sono effettivamente lo stesso.
+
 ## [1.0.3] - 2026-06-25
 
 ### Fix
@@ -58,7 +64,9 @@ Prima release pubblica.
 - TypeScript strict mode
 - Tailwind CSS
 
-[Unreleased]: https://github.com/Francy2009/The-Club/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/Francy2009/The-Club/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.4
+[1.0.3]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.3
 [1.0.2]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.2
 [1.0.1]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.0

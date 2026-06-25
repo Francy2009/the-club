@@ -31,10 +31,10 @@ function formatTime(value: string) {
   return new Date(value).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 }
 
-function generateMonthOptions(maxBack: number) {
+function generateMonthOptions(max: number, direction: 1 | -1 = -1) {
   const now = new Date()
   const options: { offset: number; label: string }[] = []
-  for (let i = 0; i >= -maxBack; i--) {
+  for (let i = 0; direction === 1 ? i <= max : i >= -max; i += direction) {
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1)
     options.push({
       offset: i,
@@ -51,8 +51,8 @@ function AdminSummary() {
   const [attendanceOffset, setAttendanceOffset] = useState(-1)
   const [loading, setLoading] = useState<'expiry' | 'attendance' | null>(null)
 
-  const expiryMonthOptions = useMemo(() => generateMonthOptions(12), [])
-  const attendanceMonthOptions = useMemo(() => generateMonthOptions(12), [])
+  const expiryMonthOptions = useMemo(() => generateMonthOptions(12, 1), [])
+  const attendanceMonthOptions = useMemo(() => generateMonthOptions(12, -1), [])
 
   const visibleExpiries = summary.expiry.members.slice(0, 12)
   const visibleEvents = summary.attendance.events.slice(0, 12)
@@ -273,7 +273,7 @@ function AdminSummary() {
               Riepilogo operativo
             </h1>
             <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--sea-ink-soft)]">
-              Scarica le tessere in scadenza e il riepilogo eventi. Usa i selettori per scegliere il mese — fino a un anno indietro.
+              Scarica le tessere in scadenza e il riepilogo eventi. Usa i selettori per scegliere il mese — le scadenze vanno da questo mese fino a un anno avanti, gli eventi fino a un anno indietro.
             </p>
           </div>
         </div>
