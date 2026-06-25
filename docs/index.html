@@ -579,14 +579,17 @@
     )
     document.querySelectorAll('.stat-value[data-count]').forEach((el) => statObserver.observe(el))
 
-    // Spotlight effect on feature cards
-    document.querySelectorAll('.feature-card, .security-card').forEach((card) => {
-      card.addEventListener('mousemove', (e) => {
-        const rect = card.getBoundingClientRect()
-        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
-        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+    // Spotlight effect on feature cards (solo device con pointer fine: mouse/trackpad)
+    const finePointer = window.matchMedia('(pointer: fine)').matches
+    if (finePointer) {
+      document.querySelectorAll('.feature-card, .security-card').forEach((card) => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect()
+          card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+          card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+        })
       })
-    })
+    }
 
     // Scroll progress bar
     const progress = document.querySelector('.scroll-progress')
@@ -622,26 +625,29 @@
       })
     })
 
-    // 3D tilt effect
-    document.querySelectorAll('[data-tilt]').forEach((el) => {
-      el.addEventListener('mousemove', (e) => {
-        const rect = el.getBoundingClientRect()
-        const x = e.clientX - rect.left
-        const y = e.clientY - rect.top
-        const centerX = rect.width / 2
-        const centerY = rect.height / 2
-        const rotateX = ((y - centerY) / centerY) * -6
-        const rotateY = ((x - centerX) / centerX) * 6
-        el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`
+    // 3D tilt effect (solo device con pointer fine)
+    if (finePointer) {
+      document.querySelectorAll('[data-tilt]').forEach((el) => {
+        el.addEventListener('mousemove', (e) => {
+          const rect = el.getBoundingClientRect()
+          const x = e.clientX - rect.left
+          const y = e.clientY - rect.top
+          const centerX = rect.width / 2
+          const centerY = rect.height / 2
+          const rotateX = ((y - centerY) / centerY) * -6
+          const rotateY = ((x - centerX) / centerX) * 6
+          el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`
+        })
+        el.addEventListener('mouseleave', () => {
+          el.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)'
+        })
       })
-      el.addEventListener('mouseleave', () => {
-        el.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)'
-      })
-    })
+    }
 
-    // Parallax on scroll for visual
+    // Parallax on scroll for visual (solo desktop: su mobile l'hero è impilato e il parallax si sovrappone al testo)
     const visual = document.querySelector('.hero-visual')
-    if (visual) {
+    const desktopLayout = window.matchMedia('(min-width: 1024px)')
+    if (visual && desktopLayout.matches) {
       window.addEventListener('scroll', () => {
         const scrolled = window.scrollY
         visual.style.transform = `translateY(${scrolled * 0.08}px)`
