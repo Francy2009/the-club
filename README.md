@@ -4,7 +4,7 @@
 
 The Club è un'app desktop per gestire soci, tessere QR, presenze e rinnovi di un club privato.
 
-Tutto resta sul tuo computer: niente cloud, niente telemetria, niente account da creare su qualche server.
+Tutto resta sul tuo computer: niente cloud, niente telemetria, niente account da creare su qualche server. L'unica comunicazione di rete è il controllo aggiornamenti all'apertura (interroga l'API pubblica di GitHub; nessun dato personale o dei soci viene inviato) — l'app funziona comunque offline.
 
 ## Chi sono
 
