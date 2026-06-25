@@ -80,3 +80,15 @@ model RateLimitAttempt {
   @@index([identifier])
   @@index([lockedUntil])
 }
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  actorId   String?
+  details   String?  // JSON string
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([actorId])
+  @@index([createdAt])
+}

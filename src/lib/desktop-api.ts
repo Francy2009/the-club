@@ -28,11 +28,27 @@ type DesktopAttendance = {
   member_was_deleted: boolean
 }
 
+type RateLimitAttempt = {
+  attempts: number
+  firstAttemptAt: number
+  lockedUntil: number
+}
+
+type AuditLog = {
+  id: string
+  action: string
+  actorId: string | null
+  details: Record<string, unknown> | null
+  timestamp: string
+}
+
 type DesktopDb = {
   version: 1
   current_user_id: string | null
   members: DesktopMember[]
   attendances: DesktopAttendance[]
+  rateLimitAttempts?: Record<string, RateLimitAttempt>
+  auditLogs?: AuditLog[]
 }
 
 const DB_KEY = 'the-club:desktop-db'
@@ -40,7 +56,6 @@ const LEGACY_DB_KEY = 'gestore-pub:desktop-db'
 const BACKUP_APPLICATION = 'the-club'
 const LEGACY_BACKUP_APPLICATION = 'gestore-pub'
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/
-const DEFAULT_RECOVERY_QUESTION = 'Qual e la tua risposta di recupero?'
 const MAX_BACKUP_BYTES = 20 * 1024 * 1024
 const MAX_BACKUP_MEMBERS = 10000
 const MAX_BACKUP_ATTENDANCES = 250000
@@ -63,52 +78,63 @@ const RATE_LIMIT_CONFIGS: Record<RateLimitType, RateLimitConfig> = {
   recovery: { maxAttempts: 5, windowMs: 15 * 60 * 1000, lockoutMs: 30 * 60 * 1000 },
 }
 
-interface RateLimitEntry {
-  attempts: number
-  firstAttemptAt: number
-  lockedUntil: number
-}
-
-const rateLimitStore = new Map<string, RateLimitEntry>()
-
 function rateLimitKey(identifier: string, type: RateLimitType) {
   return `${type}:${identifier.toLowerCase()}`
 }
 
-function checkRateLimitAllowed(identifier: string, type: RateLimitType): { allowed: boolean; retryAfterMinutes: number } {
-  const config = RATE_LIMIT_CONFIGS[type]
+function pruneExpiredRateLimitAttempts(db: DesktopDb) {
+  const attempts = db.rateLimitAttempts ?? {}
+  const now = Date.now()
+  for (const key of Object.keys(attempts)) {
+    const entry = attempts[key]
+    if (!entry) continue
+    const config = RATE_LIMIT_CONFIGS[key.split(':')[0] as RateLimitType]
+    if (!config) continue
+    // Remove entries whose lockout has expired and whose window has passed
+    if (entry.lockedUntil < now && now - entry.firstAttemptAt > config.windowMs) {
+      delete attempts[key]
+    }
+  }
+}
+
+async function checkRateLimitAllowed(identifier: string, type: RateLimitType): Promise<{ allowed: boolean; retryAfterMinutes: number }> {
+  const db = await loadDb()
+  pruneExpiredRateLimitAttempts(db)
   const key = rateLimitKey(identifier, type)
   const now = Date.now()
-  const entry = rateLimitStore.get(key)
+  const entry = db.rateLimitAttempts?.[key]
 
   if (entry && entry.lockedUntil > now) {
     const retryAfterMinutes = Math.ceil((entry.lockedUntil - now) / (60 * 1000))
     return { allowed: false, retryAfterMinutes }
   }
 
-  // Reset if window expired
-  if (entry && now - entry.firstAttemptAt > config.windowMs) {
-    rateLimitStore.delete(key)
-  }
-
   return { allowed: true, retryAfterMinutes: 0 }
 }
 
-function recordRateLimitFailure(identifier: string, type: RateLimitType): { locked: boolean; retryAfterMinutes: number } {
+async function recordRateLimitFailure(identifier: string, type: RateLimitType): Promise<{ locked: boolean; retryAfterMinutes: number }> {
+  const db = await loadDb()
+  pruneExpiredRateLimitAttempts(db)
   const config = RATE_LIMIT_CONFIGS[type]
   const key = rateLimitKey(identifier, type)
   const now = Date.now()
-  let entry = rateLimitStore.get(key)
+  let entry = db.rateLimitAttempts?.[key]
 
   if (!entry || now - entry.firstAttemptAt > config.windowMs) {
     entry = { attempts: 0, firstAttemptAt: now, lockedUntil: 0 }
-    rateLimitStore.set(key, entry)
   }
 
   entry.attempts += 1
 
   if (entry.attempts >= config.maxAttempts) {
     entry.lockedUntil = now + config.lockoutMs
+  }
+
+  db.rateLimitAttempts = db.rateLimitAttempts ?? {}
+  db.rateLimitAttempts[key] = entry
+  await saveDb(db)
+
+  if (entry.lockedUntil > now) {
     const retryAfterMinutes = Math.ceil(config.lockoutMs / (60 * 1000))
     return { locked: true, retryAfterMinutes }
   }
@@ -116,8 +142,11 @@ function recordRateLimitFailure(identifier: string, type: RateLimitType): { lock
   return { locked: false, retryAfterMinutes: 0 }
 }
 
-function clearRateLimitFailures(identifier: string, type: RateLimitType) {
-  rateLimitStore.delete(rateLimitKey(identifier, type))
+async function clearRateLimitFailures(identifier: string, type: RateLimitType) {
+  const db = await loadDb()
+  db.rateLimitAttempts = db.rateLimitAttempts ?? {}
+  delete db.rateLimitAttempts[rateLimitKey(identifier, type)]
+  await saveDb(db)
 }
 
 function getTauriInvoke(): TauriInvoke | null {
@@ -336,6 +365,35 @@ async function verifyPbkdf2Password(password: string, iterations: number, salt: 
   return timingSafeEqual(toHex(bits), expectedHash.toLowerCase())
 }
 
+async function digestRecoveryQuestion(question: string, salt = randomHex()) {
+  if (!crypto.subtle) {
+    throw new Error('Le API crittografiche Web Crypto non sono supportate in questo ambiente.')
+  }
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(question),
+    'PBKDF2',
+    false,
+    ['deriveBits'],
+  )
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: new TextEncoder().encode(salt),
+      iterations: 310000,
+      hash: 'SHA-512',
+    },
+    key,
+    512,
+  )
+  return `pbkdf2_sha512$310000$${salt}$${toHex(bits)}`
+}
+
+function isRecoveryQuestionHash(value: string): boolean {
+  return value.startsWith('pbkdf2_sha512$') || value.startsWith('recovery_q_sha512$')
+}
+
 async function verifyPassword(password: string, storedHash: string) {
   if (storedHash.startsWith('pbkdf2_sha512$')) {
     const [, iterationsValue, salt, hash] = storedHash.split('$')
@@ -376,6 +434,9 @@ function parseDb(raw: string | null): DesktopDb | null {
       recovery_question: member.recovery_question ?? null,
       recovery_phrase_hash: member.recovery_phrase_hash ?? null,
     }))
+    // Ensure rate-limit and audit-log fields exist for forward compatibility
+    parsed.rateLimitAttempts = parsed.rateLimitAttempts ?? {}
+    parsed.auditLogs = parsed.auditLogs ?? []
     return parsed
   } catch {
     return null
@@ -407,6 +468,8 @@ async function createInitialDb(): Promise<DesktopDb> {
       },
     ],
     attendances: [],
+    rateLimitAttempts: {},
+    auditLogs: [],
   }
 }
 
@@ -428,6 +491,15 @@ async function loadDb() {
     return db
   }
 
+  // Migrate legacy plain-text recovery questions to hashed format
+  let needsSave = false
+  for (const member of db.members) {
+    if (member.recovery_question && !isRecoveryQuestionHash(member.recovery_question)) {
+      member.recovery_question = await digestRecoveryQuestion(member.recovery_question.trim().replace(/\s+/g, ' '))
+      needsSave = true
+    }
+  }
+
   const bootstrapAdmin = db.members.length === 1 && db.members[0].role === 'admin'
     ? db.members[0]
     : null
@@ -438,6 +510,10 @@ async function loadDb() {
     (bootstrapAdmin.must_setup || !bootstrapAdmin.password_changed || !bootstrapAdmin.recovery_question || !bootstrapAdmin.recovery_phrase_hash)
   ) {
     db.current_user_id = bootstrapAdmin.id
+    needsSave = true
+  }
+
+  if (needsSave) {
     await saveDb(db)
   }
 
@@ -513,6 +589,21 @@ function assertReadyAdmin(db: DesktopDb) {
   return user
 }
 
+async function auditLog(db: DesktopDb, action: string, details: Record<string, unknown> | null = null) {
+  db.auditLogs = db.auditLogs ?? []
+  db.auditLogs.push({
+    id: randomId(),
+    action,
+    actorId: db.current_user_id ?? null,
+    details,
+    timestamp: new Date().toISOString(),
+  })
+  // Keep only the most recent 1000 entries to bound DB size
+  if (db.auditLogs.length > 1000) {
+    db.auditLogs = db.auditLogs.slice(-1000)
+  }
+}
+
 function assertStrongPassword(password: string, message: string) {
   if (!PASSWORD_REGEX.test(password)) throw new Error(message)
 }
@@ -564,7 +655,7 @@ export async function loginFn(args?: FnArgs) {
   const username = requiredString(data, 'username', 80).toLowerCase()
   const password = requiredString(data, 'password', 256)
 
-  const check = checkRateLimitAllowed(username, 'login')
+  const check = await checkRateLimitAllowed(username, 'login')
   if (!check.allowed) {
     throw new Error(`Troppi tentativi non riusciti. Riprova tra ${check.retryAfterMinutes} min.`)
   }
@@ -573,15 +664,17 @@ export async function loginFn(args?: FnArgs) {
   const member = db.members.find((candidate) => candidate.username.toLowerCase() === username)
 
   if (!member || !(await verifyPassword(password, member.password_hash))) {
-    const result = recordRateLimitFailure(username, 'login')
+    const result = await recordRateLimitFailure(username, 'login')
+    await auditLog(db, 'auth.login_failed', { username, locked: result.locked })
     if (result.locked) {
       throw new Error(`Troppi tentativi non riusciti. Riprova tra ${result.retryAfterMinutes} min.`)
     }
     throw new Error('Credenziali non valide')
   }
 
-  clearRateLimitFailures(username, 'login')
+  await clearRateLimitFailures(username, 'login')
   db.current_user_id = member.id
+  await auditLog(db, 'auth.login_success', { username, role: member.role })
   await saveDb(db)
 
   return {
@@ -593,7 +686,9 @@ export async function loginFn(args?: FnArgs) {
 
 export async function logoutFn() {
   const db = await loadDb()
+  const actorId = db.current_user_id
   db.current_user_id = null
+  await auditLog(db, 'auth.logout', { actorId })
   await saveDb(db)
   return { success: true }
 }
@@ -626,10 +721,11 @@ export async function setupValidator(args?: FnArgs) {
 
   user.username = username
   user.password_hash = await digestPassword(password)
-  user.recovery_question = normalizeRecoveryQuestion(recoveryQuestion)
+  user.recovery_question = await digestRecoveryQuestion(normalizeRecoveryQuestion(recoveryQuestion))
   user.recovery_phrase_hash = await digestPassword(normalizeRecoveryAnswer(recoveryAnswer))
   user.password_changed = true
   user.must_setup = false
+  await auditLog(db, 'admin.setup_completed', { username })
   await saveDb(db)
   return { success: true, role: user.role }
 }
@@ -653,6 +749,7 @@ export async function changeAdminPasswordFn(args?: FnArgs) {
   admin.password_hash = await digestPassword(newPassword)
   admin.password_changed = true
   admin.must_setup = false
+  await auditLog(db, 'admin.password_changed')
   await saveDb(db)
   return { success: true }
 }
@@ -672,8 +769,9 @@ export async function changeAdminRecoveryPhraseFn(args?: FnArgs) {
 
   assertRecoveryQuestion(recoveryQuestion)
   assertRecoveryAnswer(recoveryAnswer)
-  admin.recovery_question = normalizeRecoveryQuestion(recoveryQuestion)
+  admin.recovery_question = await digestRecoveryQuestion(normalizeRecoveryQuestion(recoveryQuestion))
   admin.recovery_phrase_hash = await digestPassword(normalizeRecoveryAnswer(recoveryAnswer))
+  await auditLog(db, 'admin.recovery_phrase_changed')
   await saveDb(db)
   return { success: true }
 }
@@ -684,8 +782,9 @@ export async function getRecoveryQuestionFn(args?: FnArgs) {
   const db = await loadDb()
   const username = requiredString(data, 'username', 80).toLowerCase()
   const member = db.members.find((candidate) => candidate.username.toLowerCase() === username)
+  // Generic response: do not reveal the question text or whether the user exists.
   return {
-    question: member?.recovery_phrase_hash ? member.recovery_question || DEFAULT_RECOVERY_QUESTION : null,
+    hasRecovery: Boolean(member?.recovery_phrase_hash),
   }
 }
 
@@ -697,7 +796,7 @@ export async function recoverPasswordFn(args?: FnArgs) {
   const recoveryAnswer = requiredString(data, 'recovery_answer', 500)
   const newPassword = requiredString(data, 'new_password', 256)
 
-  const check = checkRateLimitAllowed(username, 'recovery')
+  const check = await checkRateLimitAllowed(username, 'recovery')
   if (!check.allowed) {
     throw new Error(`Troppi tentativi di recupero. Riprova tra ${check.retryAfterMinutes} min.`)
   }
@@ -717,7 +816,8 @@ export async function recoverPasswordFn(args?: FnArgs) {
       (await verifyPassword(normalizeLegacyRecoveryPhrase(recoveryAnswer), member.recovery_phrase_hash))
     )
   ) {
-    const result = recordRateLimitFailure(username, 'recovery')
+    const result = await recordRateLimitFailure(username, 'recovery')
+    await auditLog(db, 'auth.recovery_failed', { username, locked: result.locked })
     if (result.locked) {
       throw new Error(`Troppi tentativi di recupero. Riprova tra ${result.retryAfterMinutes} min.`)
     }
@@ -728,11 +828,12 @@ export async function recoverPasswordFn(args?: FnArgs) {
     throw new Error('La nuova password deve essere diversa da quella attuale')
   }
 
-  clearRateLimitFailures(username, 'recovery')
+  await clearRateLimitFailures(username, 'recovery')
   member.password_hash = await digestPassword(newPassword)
   member.password_changed = true
   member.must_setup = false
   db.current_user_id = member.id
+  await auditLog(db, 'auth.recovery_completed', { username })
   await saveDb(db)
   return { success: true, role: member.role }
 }
@@ -809,6 +910,7 @@ export async function createMemberFn(args?: FnArgs) {
   }
 
   db.members.push(member)
+  await auditLog(db, 'member.created', { memberId: member.id, memberNumber })
   await saveDb(db)
 
   return {
@@ -840,6 +942,7 @@ export async function renewMembershipFn(args?: FnArgs) {
   const startDate = startDateValue ? new Date(startDateValue) : new Date()
   member.joined_at = startDate.toISOString()
   member.expiry_date = addMembershipYear(startDate).toISOString()
+  await auditLog(db, 'membership.renewed', { memberId, startDate: member.joined_at })
   await saveDb(db)
   return { success: true }
 }
@@ -856,6 +959,7 @@ export async function deleteMemberFn(args?: FnArgs) {
     attendance.member_id === memberId ? { ...attendance, member_was_deleted: true } : attendance
   ))
   db.members = db.members.filter((member) => member.id !== memberId)
+  await auditLog(db, 'member.deleted', { memberId })
   await saveDb(db)
   return { success: true }
 }
@@ -869,7 +973,11 @@ export async function registerAttendanceFn(args?: FnArgs) {
   const code = requiredString({ code: codeValue }, 'code', 120)
   const member = db.members.find((candidate) => candidate.id === code || candidate.qr_token === code)
 
-  if (!member) throw new Error('Membro non registrato o codice QR non valido')
+  if (!member) {
+    await auditLog(db, 'attendance.register_failed', { code, reason: 'member_not_found' })
+    await saveDb(db)
+    throw new Error('Membro non registrato o codice QR non valido')
+  }
   if (member.role === 'admin') throw new Error("L'account amministratore non usa tessere o check-in")
   if (!member.member_number || !member.expiry_date) {
     throw new Error('Tessera membro incompleta: numero tessera o scadenza mancanti')
@@ -913,6 +1021,7 @@ export async function registerAttendanceFn(args?: FnArgs) {
     member_number: member.member_number,
     member_was_deleted: false,
   })
+  await auditLog(db, 'attendance.registered', { memberId: member.id, checkInDay })
   await saveDb(db)
   return { success: true, alreadyCheckedIn: false, member: memberResult }
 }
@@ -1046,6 +1155,7 @@ export async function deleteAttendanceFn(args?: FnArgs) {
   assertReadyAdmin(db)
   const attendanceId = requiredString(data, 'attendance_id', 120)
   db.attendances = db.attendances.filter((attendance) => attendance.id !== attendanceId)
+  await auditLog(db, 'attendance.deleted', { attendanceId })
   await saveDb(db)
   return { success: true }
 }
@@ -1054,6 +1164,7 @@ export async function exportBackupFn() {
   const db = await loadDb()
   assertReadyAdmin(db)
   const exportedAt = new Date().toISOString()
+  await auditLog(db, 'backup.exported')
   const members = db.members.map((member) => ({
     id: member.id,
     first_name: member.first_name,
@@ -1225,7 +1336,7 @@ export async function restoreBackupFn(args?: FnArgs) {
       qr_token: nullableString(member, 'qr_token', 120),
       username: requiredString(member, 'username', 80).toLowerCase(),
       password_hash: passwordHash,
-      recovery_question: nullableString(member, 'recovery_question', 120),
+      recovery_question: nullableString(member, 'recovery_question', 256),
       recovery_phrase_hash: recoveryPhraseHash,
       joined_at: requiredDateString(member, 'joined_at'),
       expiry_date: optionalDateString(member, 'expiry_date') ?? null,
@@ -1284,6 +1395,16 @@ export async function restoreBackupFn(args?: FnArgs) {
     current_user_id: null,
     members: restoredMembers,
     attendances: restoredAttendances,
+    rateLimitAttempts: {},
+    auditLogs: [
+      {
+        id: randomId(),
+        action: 'backup.restored',
+        actorId: user.id,
+        details: { members: restoredMembers.length, attendances: restoredAttendances.length },
+        timestamp: new Date().toISOString(),
+      },
+    ],
   }
 
   const restoredAdmin = restoredMembersWithFlags.find((member) => member.role === 'admin')

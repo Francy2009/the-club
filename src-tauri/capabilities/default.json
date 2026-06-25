@@ -1,18 +1,12 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main The Club window",
+  "description": "Minimal capability for the main The Club window",
   "windows": ["main"],
   "permissions": [
-    "core:default",
+    "core:app:default",
     "core:window:default",
     "core:webview:default",
-    "core:event:default",
-    "core:app:default",
-    "core:path:default",
-    "core:resources:default",
-    "core:menu:default",
-    "core:tray:default",
-    "core:image:default"
+    "core:path:default"
   ]
 }

@@ -30,7 +30,7 @@
     "security": {
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.github.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none';"
     },
-    "macOSPrivateApi": true
+    "macOSPrivateApi": false
   },
   "bundle": {
     "active": true,

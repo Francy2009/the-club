@@ -32,6 +32,11 @@ jobs:
       - name: Audit dependencies
         run: npm audit --audit-level=moderate
 
+      - name: Audit Rust dependencies
+        run: |
+          cargo install cargo-audit
+          cargo audit --manifest-path src-tauri/Cargo.toml
+
       - name: Typecheck
         run: npm run typecheck
 

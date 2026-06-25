@@ -3,6 +3,19 @@ import { prisma } from './db';
 import { getAuthenticatedUser, verifyPassword, hashPassword, setSession, destroySession, hashRecoveryQuestion } from './auth.server';
 import crypto from 'node:crypto';
 
+function auditLog(action: string, actorId?: string, details?: Record<string, unknown>) {
+  // Fire-and-forget: audit should never block the user request.
+  prisma.auditLog.create({
+    data: {
+      action,
+      actorId,
+      details: details ? JSON.stringify(details) : null,
+    },
+  }).catch(() => {
+    // Ignore audit write failures to avoid breaking legitimate operations.
+  });
+}
+
 type AuthenticatedUser = {
   id: string;
   role: string;
@@ -563,6 +576,8 @@ export const setupValidator = createServerFn({ method: 'POST' })
 
     await setSession(user.id);
 
+    auditLog('admin.setup_completed', user.id, { username: trimmedUsername });
+
     return { success: true, role: user.role };
   });
 
@@ -625,6 +640,8 @@ export const changeAdminPasswordFn = createServerFn({ method: 'POST' })
     // Create new session with fresh token
     await setSession(admin.id);
 
+    auditLog('admin.password_changed', admin.id);
+
     return { success: true };
   });
 
@@ -686,6 +703,8 @@ export const changeAdminRecoveryPhraseFn = createServerFn({ method: 'POST' })
 
     // Create new session with fresh token
     await setSession(admin.id);
+
+    auditLog('admin.recovery_phrase_changed', admin.id);
 
     return { success: true };
   });
@@ -755,6 +774,7 @@ export const recoverPasswordFn = createServerFn({ method: 'POST' })
     if (!memberExistsAndValid) {
       // Always record failure (even for non-existent users) to prevent enumeration
       await recordRecoveryFailure(username);
+      auditLog('auth.recovery_failed', member?.id, { username });
       throw new Error('Username o risposta di recupero non validi.');
     }
 
@@ -785,6 +805,8 @@ export const recoverPasswordFn = createServerFn({ method: 'POST' })
     });
 
     await setSession(member.id);
+
+    auditLog('auth.recovery_completed', member.id, { username });
 
     return { success: true, role: member.role?.role ?? 'user' };
   });
@@ -825,6 +847,7 @@ export const loginFn = createServerFn({ method: 'POST' })
     if (!member || !isValid) {
       // Always record failure (even for non-existent users) to prevent enumeration
       await recordLoginFailure(searchUsername);
+      auditLog('auth.login_failed', member?.id, { username: searchUsername });
       throw new Error('Credenziali non valide');
     }
 
@@ -832,6 +855,8 @@ export const loginFn = createServerFn({ method: 'POST' })
 
     await destroySession();
     await setSession(member.id);
+
+    auditLog('auth.login_success', member.id, { username: searchUsername, role: member.role?.role ?? 'user' });
 
     return {
       success: true,
@@ -842,7 +867,9 @@ export const loginFn = createServerFn({ method: 'POST' })
 
 export const logoutFn = createServerFn({ method: 'POST' })
   .handler(async () => {
+    const user = await getAuthenticatedUser();
     await destroySession();
+    auditLog('auth.logout', user?.id);
     return { success: true };
   });
 
@@ -1030,6 +1057,8 @@ export const createMemberFn = createServerFn({ method: 'POST' })
       });
     });
 
+    auditLog('member.created', user.id, { memberId: newMember.id, memberNumber });
+
     return {
       success: true,
       id: newMember.id,
@@ -1084,6 +1113,8 @@ export const renewMembershipFn = createServerFn({ method: 'POST' })
       },
     });
 
+    auditLog('membership.renewed', user.id, { memberId: data.member_id, startDate: startDate.toISOString() });
+
     return { success: true };
   });
 
@@ -1115,6 +1146,8 @@ export const deleteMemberFn = createServerFn({ method: 'POST' })
         where: { id: data.member_id },
       }),
     ]);
+
+    auditLog('member.deleted', user.id, { memberId: data.member_id });
 
     return { success: true };
   });
@@ -1154,6 +1187,7 @@ export const registerAttendanceFn = createServerFn({ method: 'POST' })
     }
 
     if (!member) {
+      auditLog('attendance.register_failed', user.id, { identifier: data.identifier, reason: 'member_not_found' });
       throw new Error('Membro non registrato o codice QR non valido');
     }
 
@@ -1233,6 +1267,10 @@ export const registerAttendanceFn = createServerFn({ method: 'POST' })
         },
       };
     });
+
+    if (result.success && !result.alreadyCheckedIn) {
+      auditLog('attendance.registered', user.id, { memberId: member.id, checkInDay });
+    }
 
     return result;
   });
@@ -1472,6 +1510,8 @@ export const deleteAttendanceFn = createServerFn({ method: 'POST' })
       where: { id: data.attendance_id },
     });
 
+    auditLog('attendance.deleted', user.id, { attendanceId: data.attendance_id });
+
     return { success: true };
   });
 
@@ -1499,6 +1539,8 @@ export const exportBackupFn = createServerFn({ method: 'GET' })
         ],
       }),
     ]);
+
+    auditLog('backup.exported', user.id, { members: members.length, attendances: attendances.length });
 
     const exportedAt = new Date().toISOString();
     const backup = {
@@ -1683,7 +1725,7 @@ export const restoreBackupFn = createServerFn({ method: 'POST' })
       const isFullBackup = hasPassword || hasRecoveryHash;
 
       let password: string;
-      const recoveryQuestion = nullableString(rawMember, 'recovery_question', 120);
+      const recoveryQuestion = nullableString(rawMember, 'recovery_question', 256);
       let recoveryPhraseHash: string | null = null;
 
       if (isFullBackup) {
@@ -1825,6 +1867,12 @@ export const restoreBackupFn = createServerFn({ method: 'POST' })
     if (currentAdminRestored || restoredAdminNeedsSetup) {
       await setSession(restoredAdmin!.id);
     }
+
+    auditLog('backup.restored', user.id, {
+      members: memberInputs.length,
+      attendances: attendanceInputs.length,
+      keptSession: Boolean(currentAdminRestored || restoredAdminNeedsSetup),
+    });
 
     return {
       success: true,
