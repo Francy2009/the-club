@@ -6,6 +6,12 @@ The Club è un'app desktop per gestire soci, tessere QR, presenze e rinnovi di u
 
 Tutto resta sul tuo computer: niente cloud, niente telemetria, niente account da creare su qualche server. L'unica comunicazione di rete è il controllo aggiornamenti all'apertura (interroga l'API pubblica di GitHub; nessun dato personale o dei soci viene inviato) — l'app funziona comunque offline.
 
+> ⚠️ **Avviso di sicurezza — versione Linux non più distribuita**
+>
+> A partire dalla versione **1.1.0** non rilasciamo più i pacchetti per Linux. Il motivo, in parole semplici: su Linux l'app si appoggia a una libreria di sistema (`glib`, usata dal framework Tauri) che aveva un **bug di sicurezza** noto. Non potevamo aggiornarla da soli, perché la versione con la correzione dipende da un aggiornamento del framework ancora non disponibile.
+>
+> Piuttosto che distribuire un software con un problema di sicurezza conosciuto, abbiamo preferito **sospendere il supporto Linux** in attesa che il framework renda disponibile la correzione. Su Windows e macOS l'app non è coinvolta: quella libreria non viene nemmeno inclusa, e tutto continua a funzionare come prima.
+
 ## Chi sono
 
 Sono **Francesco Dell'Orto**, studente del liceo scientifico. Ho costruito questa app perché mi serviva uno strumento concreto per un club locale — qualcosa che si installa, si apre e funziona, senza dover configurare un server o pagare un abbonamento.
@@ -20,7 +26,7 @@ Ho usato strumenti di intelligenza artificiale come supporto durante lo sviluppo
 - Gestisce scadenze e rinnovi annuali
 - Esporta backup JSON, CSV e PDF
 - Recupero password tramite domanda personale
-- Funziona su Windows, macOS e Linux
+- Funziona su Windows e macOS
 
 ## Installazione
 
@@ -28,7 +34,6 @@ Vai su [GitHub Releases](https://github.com/Francy2009/The-Club/releases) e scar
 
 - **Windows**: file `.msi` o `.exe` — doppio clic per installare
 - **macOS**: file `.dmg` — trascina l'app in Applicazioni
-- **Linux**: `.AppImage`, `.deb` o `.rpm`
 
 Al primo avvio l'app crea il database da sola e ti chiede di configurare l'account amministratore (username, password, domanda di recupero). Non serve preparare nulla a mano.
 
@@ -49,13 +54,12 @@ Non c'è bisogno di disinstallare prima: l'installer sostituisce la vecchia vers
 Se vuoi rimuovere completamente l'app **e tutti i suoi dati**:
 
 1. Apri l'app, vai su **Impostazioni → Rimuovi dati locali** e clicca "Elimina tutti i dati locali"
-2. Disinstalla l'app dal sistema (Pannello di controllo su Windows, Applicazioni su macOS, `apt remove` / Gestore pacchetti su Linux)
+2. Disinstalla l'app dal sistema (Pannello di controllo su Windows, Applicazioni su macOS)
 
 Se disinstalli solo l'app senza passare dal pulsante nelle impostazioni, i dati restano nella cartella dati del sistema. Puoi eliminarli manualmente:
 
 - **Windows**: `%APPDATA%\com.the.club\`
 - **macOS**: `~/Library/Application Support/com.the.club/`
-- **Linux**: `~/.local/share/com.the.club/` o `~/.config/com.the.club/`
 
 ## Dove finiscono i dati
 

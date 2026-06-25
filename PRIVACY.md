@@ -58,7 +58,7 @@ Il software non raccoglie né gestisce:
 | Ambiente | Storage |
 |----------|---------|
 | Sviluppo/Server | File SQLite (`prisma/dev.db` o `prod.db`) |
-| Desktop (Tauri) | File JSON locale `desktop-db.json` nella cartella dati dell'app: `%APPDATA%` (Windows), `~/Library/Application Support` (macOS), `~/.local/share` (Linux) |
+| Desktop (Tauri) | File JSON locale `desktop-db.json` nella cartella dati dell'app: `%APPDATA%` (Windows), `~/Library/Application Support` (macOS) |
 | Docker/Container | Volume persistente mappato |
 
 Nelle versioni desktop recenti l'eventuale vecchio database in `localStorage` viene migrato automaticamente al file locale dell'app.

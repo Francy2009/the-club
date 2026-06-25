@@ -7,6 +7,11 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-25
+
+### Modificato
+- **Rimosso il supporto Linux**: l'app ora viene distribuita solo per Windows e macOS. Su Linux il framework (Tauri) usa una libreria di sistema chiamata `glib`, che aveva un bug di sicurezza segnalato da Dependabot. Non potevamo correggerlo da soli, perché la versione con il fix richiede un aggiornamento del framework stesso, ancora non disponibile. Piuttosto che spedire codice con un problema di sicurezza noto, abbiamo preferito sospendere il supporto Linux in attesa della correzione a monte. Su Windows e macOS il funzionamento non cambia: la libreria in questione non viene nemmeno inclusa in quei binari.
+
 ## [1.0.4] - 2026-06-25
 
 ### Fix
@@ -64,7 +69,8 @@ Prima release pubblica.
 - TypeScript strict mode
 - Tailwind CSS
 
-[Unreleased]: https://github.com/Francy2009/The-Club/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/Francy2009/The-Club/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Francy2009/The-Club/releases/tag/v1.1.0
 [1.0.4]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.4
 [1.0.3]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.3
 [1.0.2]: https://github.com/Francy2009/The-Club/releases/tag/v1.0.2
