@@ -22,6 +22,16 @@
   <div class="bg-glow bg-glow-2" aria-hidden="true"></div>
   <div class="bg-glow bg-glow-3" aria-hidden="true"></div>
 
+  <!-- Floating particles -->
+  <div class="particles" aria-hidden="true">
+    <span class="particle" style="--x: 12%; --y: 18%; --size: 3px; --duration: 14s; --delay: 0s"></span>
+    <span class="particle" style="--x: 88%; --y: 24%; --size: 2px; --duration: 18s; --delay: 2s"></span>
+    <span class="particle" style="--x: 24%; --y: 62%; --size: 4px; --duration: 16s; --delay: 4s"></span>
+    <span class="particle" style="--x: 76%; --y: 78%; --size: 2px; --duration: 20s; --delay: 1s"></span>
+    <span class="particle" style="--x: 56%; --y: 42%; --size: 3px; --duration: 15s; --delay: 6s"></span>
+    <span class="particle" style="--x: 42%; --y: 88%; --size: 2px; --duration: 17s; --delay: 3s"></span>
+  </div>
+
   <!-- Nav -->
   <nav class="nav" id="nav">
     <div class="nav-inner">
@@ -31,6 +41,7 @@
       </a>
       <div class="nav-links">
         <a href="#funzioni">Funzioni</a>
+        <a href="#come-funziona">Come funziona</a>
         <a href="#perche">Perché</a>
         <a href="#faq">FAQ</a>
         <a href="https://github.com/Francy2009/the-club" target="_blank" rel="noopener" class="nav-cta">GitHub</a>
@@ -78,49 +89,165 @@
         </span>
       </div>
     </div>
+
+    <!-- Hero mockup -->
+    <div class="hero-mockup reveal" style="--delay: 200ms">
+      <div class="mockup-window" data-tilt>
+        <div class="mockup-header">
+          <div class="mockup-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="mockup-title">The Club</div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-sidebar">
+            <div class="mockup-nav-item active"></div>
+            <div class="mockup-nav-item"></div>
+            <div class="mockup-nav-item"></div>
+            <div class="mockup-nav-item"></div>
+          </div>
+          <div class="mockup-main">
+            <div class="mockup-search"></div>
+            <div class="mockup-members">
+              <div class="mockup-row">
+                <div class="mockup-avatar">MR</div>
+                <div class="mockup-lines">
+                  <div class="mockup-line mockup-line-lg"></div>
+                  <div class="mockup-line"></div>
+                </div>
+                <div class="mockup-status active">Attivo</div>
+              </div>
+              <div class="mockup-row">
+                <div class="mockup-avatar">LS</div>
+                <div class="mockup-lines">
+                  <div class="mockup-line mockup-line-lg"></div>
+                  <div class="mockup-line"></div>
+                </div>
+                <div class="mockup-status exp">In scadenza</div>
+              </div>
+              <div class="mockup-row">
+                <div class="mockup-avatar">AB</div>
+                <div class="mockup-lines">
+                  <div class="mockup-line mockup-line-lg"></div>
+                  <div class="mockup-line"></div>
+                </div>
+                <div class="mockup-status active">Attivo</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-float mockup-float-1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7"/><path d="M3 7l9-4 9 4"/></svg>
+          <span>+1 ingresso</span>
+        </div>
+        <div class="mockup-float mockup-float-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>Presenze: 47</span>
+        </div>
+      </div>
+    </div>
   </header>
+
+  <!-- Stats -->
+  <section class="stats-section">
+    <div class="stats-grid reveal">
+      <div class="stat-item">
+        <div class="stat-value">100%</div>
+        <div class="stat-label">Offline</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">0</div>
+        <div class="stat-label">Telemetria</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">3</div>
+        <div class="stat-label">Piattaforme</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">MIT</div>
+        <div class="stat-label">Licenza</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="come-funziona" class="section section-alt">
+    <div class="section-inner">
+      <h2 class="section-title reveal">Come funziona</h2>
+      <div class="steps">
+        <div class="step reveal" style="--delay: 0ms">
+          <div class="step-number">1</div>
+          <div class="step-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <h3>Scarica</h3>
+          <p>Prendi il file per il tuo sistema dalla pagina release di GitHub. Windows, macOS o Linux.</p>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step reveal" style="--delay: 120ms">
+          <div class="step-number">2</div>
+          <div class="step-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Configura</h3>
+          <p>Crea l'account admin, imposta il nome del club e inizia a inserire i soci.</p>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step reveal" style="--delay: 240ms">
+          <div class="step-number">3</div>
+          <div class="step-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 11h8M8 15h5"/></svg>
+          </div>
+          <h3>Gestisci</h3>
+          <p>Stampa tessere QR, registra presenze, esporta report. Tutto in locale.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Features -->
   <section id="funzioni" class="section">
     <div class="section-inner">
       <h2 class="section-title reveal">Cosa fa</h2>
       <div class="features-grid">
-        <div class="feature-card reveal" style="--delay: 0ms">
+        <div class="feature-card reveal" style="--delay: 0ms" data-tilt>
           <div class="feature-icon feature-icon-rose">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
           <h3>Gestione soci</h3>
           <p>Crea, modifica, rinnovi ed elimini i soci del club. Anagrafica, numero tessera, scadenza annuale.</p>
         </div>
-        <div class="feature-card reveal" style="--delay: 80ms">
+        <div class="feature-card reveal" style="--delay: 80ms" data-tilt>
           <div class="feature-icon feature-icon-amber">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           </div>
           <h3>Tessere QR</h3>
           <p>Genera tessere con QR code permanente per ogni socio. Il QR identifica la persona, non scade al rinnovo.</p>
         </div>
-        <div class="feature-card reveal" style="--delay: 160ms">
+        <div class="feature-card reveal" style="--delay: 160ms" data-tilt>
           <div class="feature-icon feature-icon-teal">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7"/><path d="M3 7l9-4 9 4"/><path d="M3 7h18"/></svg>
           </div>
           <h3>Scanner presenze</h3>
           <p>Registra gli ingressi scansionando il QR della tessera, oppure cercando il socio per nome o numero.</p>
         </div>
-        <div class="feature-card reveal" style="--delay: 0ms">
+        <div class="feature-card reveal" style="--delay: 0ms" data-tilt>
           <div class="feature-icon feature-icon-violet">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
           </div>
           <h3>Riepilogo e report</h3>
           <p>Visualizza le presenze mensili, esporta PDF e CSV. Selettore mese per consultare lo storico.</p>
         </div>
-        <div class="feature-card reveal" style="--delay: 80ms">
+        <div class="feature-card reveal" style="--delay: 80ms" data-tilt>
           <div class="feature-icon feature-icon-emerald">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </div>
           <h3>Backup e export</h3>
           <p>Esporta backup completi (JSON), fogli di calcolo (CSV) e tessere PDF. Tutto sul tuo filesystem.</p>
         </div>
-        <div class="feature-card reveal" style="--delay: 160ms">
+        <div class="feature-card reveal" style="--delay: 160ms" data-tilt>
           <div class="feature-icon feature-icon-sky">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
@@ -136,22 +263,22 @@
     <div class="section-inner">
       <h2 class="section-title reveal">Perché The Club</h2>
       <div class="why-grid">
-        <div class="why-item reveal" style="--delay: 0ms">
+        <div class="why-item reveal" style="--delay: 0ms" data-tilt>
           <div class="why-number">01</div>
           <h3>Tutto in locale</h3>
           <p>I dati restano sul tuo computer. Niente cloud, niente server di terze parti, niente account online. L'app non invia nulla da nessuna parte.</p>
         </div>
-        <div class="why-item reveal" style="--delay: 100ms">
+        <div class="why-item reveal" style="--delay: 100ms" data-tilt>
           <div class="why-number">02</div>
           <h3>Gratis e open source</h3>
           <p>Codice verificabile, modificabile, ridistribuibile. Licenza MIT. Niente abbonamenti, niente trial, niente pubblicità.</p>
         </div>
-        <div class="why-item reveal" style="--delay: 200ms">
+        <div class="why-item reveal" style="--delay: 200ms" data-tilt>
           <div class="why-number">03</div>
           <h3>Privacy per design</h3>
           <p>Zero telemetria, zero analytics, zero tracking. L'unica comunicazione di rete è il controllo aggiornamenti verso GitHub.</p>
         </div>
-        <div class="why-item reveal" style="--delay: 300ms">
+        <div class="why-item reveal" style="--delay: 300ms" data-tilt>
           <div class="why-number">04</div>
           <h3>Multi-piattaforma</h3>
           <p>Windows, macOS e Linux. Stessa app, stessi dati, stessa interfaccia. Si installa con un doppio clic.</p>
@@ -196,7 +323,7 @@
   <!-- CTA -->
   <section class="cta">
     <div class="cta-glow"></div>
-    <div class="cta-inner reveal">
+    <div class="cta-inner reveal" data-tilt>
       <div class="cta-badge">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         Open source · MIT
@@ -290,6 +417,32 @@
         }
       })
     })
+
+    // 3D tilt effect
+    document.querySelectorAll('[data-tilt]').forEach((el) => {
+      el.addEventListener('mousemove', (e) => {
+        const rect = el.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+        const centerX = rect.width / 2
+        const centerY = rect.height / 2
+        const rotateX = ((y - centerY) / centerY) * -6
+        const rotateY = ((x - centerX) / centerX) * 6
+        el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`
+      })
+      el.addEventListener('mouseleave', () => {
+        el.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)'
+      })
+    })
+
+    // Parallax on scroll for mockup
+    const mockup = document.querySelector('.hero-mockup')
+    if (mockup) {
+      window.addEventListener('scroll', () => {
+        const scrolled = window.scrollY
+        mockup.style.transform = `translateY(${scrolled * 0.08}px)`
+      })
+    }
   </script>
 </body>
 </html>
