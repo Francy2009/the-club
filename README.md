@@ -12,7 +12,7 @@ Tutto resta sul tuo computer: niente cloud, niente telemetria, niente account da
 >
 > Piuttosto che distribuire un software con un problema di sicurezza conosciuto, abbiamo preferito **sospendere il supporto Linux** in attesa che il framework renda disponibile la correzione. Su Windows e macOS l'app non è coinvolta: quella libreria non viene nemmeno inclusa, e tutto continua a funzionare come prima.
 
-## Chi sono
+## Chi siamo
 
 Siamo **Francesco Dell'Orto** e **Roberto Brenna**, due studenti del liceo scientifico. Abbiamo costruito questa app perché ci serviva uno strumento concreto per un club locale — qualcosa che si installa, si apre e funziona, senza dover configurare un server o pagare un abbonamento.
 
@@ -20,7 +20,7 @@ Abbiamo usato strumenti di intelligenza artificiale come supporto durante lo svi
 
 ## Cosa fa
 
-- Crea e gestisce i soci del club
+- Registra e gestisce i soci del club
 - Genera tessere con QR code
 - Registra le presenze tramite scanner QR (o ricerca manuale per nome)
 - Gestisce scadenze e rinnovi annuali
