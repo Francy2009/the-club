@@ -14,9 +14,9 @@ Tutto resta sul tuo computer: niente cloud, niente telemetria, niente account da
 
 ## Chi sono
 
-Sono **Francesco Dell'Orto**, studente del liceo scientifico. Ho costruito questa app perché mi serviva uno strumento concreto per un club locale — qualcosa che si installa, si apre e funziona, senza dover configurare un server o pagare un abbonamento.
+Siamo **Francesco Dell'Orto** e **Roberto Brenna**, due studenti del liceo scientifico. Abbiamo costruito questa app perché ci serviva uno strumento concreto per un club locale — qualcosa che si installa, si apre e funziona, senza dover configurare un server o pagare un abbonamento.
 
-Ho usato strumenti di intelligenza artificiale come supporto durante lo sviluppo, soprattutto per il frontend e la documentazione, ma le decisioni, la struttura e le verifiche sono mie.
+Abbiamo usato strumenti di intelligenza artificiale come supporto durante lo sviluppo, soprattutto per il frontend e la documentazione, ma le decisioni, la struttura e le verifiche sono nostre.
 
 ## Cosa fa
 
