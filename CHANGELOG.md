@@ -7,6 +7,33 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-08-09
+
+Release di sola manutenzione: nessuna modifica funzionale né all'interfaccia utente. Chiude tutte le vulnerabilità note segnalate da `npm audit` e `cargo audit`.
+
+### Sicurezza
+- **dompurify** portato a 3.4.13: risolve il bypass di `afterSanitizeElements` per gli elementi custom consentiti ([GHSA-c2j3-45gr-mqc4](https://github.com/advisories/GHSA-c2j3-45gr-mqc4)) e l'XSS dovuto al sottoalbero eseguibile lasciato staccato dalla rimozione dell'hook `IN_PLACE` ([GHSA-55q2-fjhq-7xh7](https://github.com/advisories/GHSA-55q2-fjhq-7xh7)).
+- **postcss** portato a 8.5.26: risolve due path traversal nel caricamento automatico della source map via `sourceMappingURL`, che permettevano la lettura di file `.map` arbitrari ([GHSA-r28c-9q8g-f849](https://github.com/advisories/GHSA-r28c-9q8g-f849), [GHSA-fxqj-rqcc-2cmp](https://github.com/advisories/GHSA-fxqj-rqcc-2cmp)).
+- **undici** portato a 7.29.0: risolve la desincronizzazione delle risposte a valle nell'interceptor di retry, la divulgazione di dati tra utenti diversi tramite direttive `Cache-Control` malformate, la CRLF injection via proprietà `type` di body blob-like e la cookie attribute injection ([GHSA-8xcm-r25x-g524](https://github.com/advisories/GHSA-8xcm-r25x-g524), [GHSA-4cwx-7wf7-3272](https://github.com/advisories/GHSA-4cwx-7wf7-3272), [GHSA-m8rv-5g2x-5cg5](https://github.com/advisories/GHSA-m8rv-5g2x-5cg5), [GHSA-jr45-8vmc-qm54](https://github.com/advisories/GHSA-jr45-8vmc-qm54), [GHSA-v3r7-h72x-cjcm](https://github.com/advisories/GHSA-v3r7-h72x-cjcm)).
+- **js-yaml** portato a 4.3.1: risolve due casi di consumo quadratico di CPU, su catene di merge key e sulla risoluzione di `!!omap` ([GHSA-52cp-r559-cp3m](https://github.com/advisories/GHSA-52cp-r559-cp3m), [GHSA-5p4m-2wfm-xmqj](https://github.com/advisories/GHSA-5p4m-2wfm-xmqj)).
+- **shell-quote** portato a 1.10.0: risolve il denial of service a complessità quadratica in `parse()` ([GHSA-395f-4hp3-45gv](https://github.com/advisories/GHSA-395f-4hp3-45gv)).
+- **nanoid** portato a 3.3.18: risolve i cicli infiniti dei generatori non sicuri con dimensione negativa o nulla ([GHSA-28wg-ghj8-5hjv](https://github.com/advisories/GHSA-28wg-ghj8-5hjv), [GHSA-2v37-7h3g-55p8](https://github.com/advisories/GHSA-2v37-7h3g-55p8)).
+- **quick-xml** (Rust) portato a 0.41.0 tramite l'aggiornamento di `plist` a 1.10.0: risolve il tempo di esecuzione quadratico nel controllo degli attributi duplicati e l'esaurimento di memoria per allocazione illimitata delle dichiarazioni di namespace in `NsReader` ([RUSTSEC-2026-0194](https://rustsec.org/advisories/RUSTSEC-2026-0194), [RUSTSEC-2026-0195](https://rustsec.org/advisories/RUSTSEC-2026-0195)).
+
+### Aggiornato
+- **lucide-react** aggiornato da 0.545.0 a 1.23.0. Il salto di major è la stabilizzazione dell'API: tutte le 43 icone usate dal progetto continuano a risolversi, verificato con `tsc --noEmit`.
+- **Tauri** (Rust) aggiornato da 2.11.3 a 2.11.5, con `tauri-runtime-wry` da 2.11.3 a 2.11.4.
+- **tauri-plugin-single-instance** aggiornato da 2.4.2 a 2.4.3.
+- **@tanstack/react-devtools** aggiornato da 0.10.5 a 0.10.8 (dipendenza di sviluppo).
+- **@tanstack/devtools-vite** aggiornato da 0.8.0 a 0.8.1 (dipendenza di sviluppo).
+
+### Tecnico
+- Aggiunta una sezione `overrides` in `package.json` per forzare le versioni sicure di `dompurify`, `js-yaml`, `nanoid`, `postcss`, `shell-quote` e `undici`. Sono tutte dipendenze transitive: nessuna è dichiarata direttamente dal progetto, quindi non erano aggiornabili senza override.
+- Verificato con `npm audit --audit-level=moderate` (0 vulnerabilità), `cargo audit` (0 vulnerabilità), typecheck, suite di test (12/12) e build.
+
+### Note
+- Restano aperti gli aggiornamenti a Prisma 7 (`prisma` e `@prisma/client`): richiedono una migrazione dedicata, perché la versione 7 non accetta più la proprietà `url` nel blocco `datasource` e impone un `prisma.config.ts` più un driver adapter al costruttore di `PrismaClient`.
+
 ## [2.0.0] - 2026-06-26
 
 ### Corretto
@@ -119,7 +146,8 @@ Prima release pubblica.
 - TypeScript strict mode
 - Tailwind CSS
 
-[Unreleased]: https://github.com/Francy2009/The-Club/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Francy2009/The-Club/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.1
 [2.0.0]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.0
 [1.1.2]: https://github.com/Francy2009/The-Club/releases/tag/v1.1.2
 [1.1.1]: https://github.com/Francy2009/The-Club/releases/tag/v1.1.1
