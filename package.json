@@ -29,7 +29,7 @@
     "@tauri-apps/api": "^2.11.1",
     "html5-qrcode": "^2.3.8",
     "jspdf": "4.2.1",
-    "lucide-react": "1.23.0",
+    "lucide-react": "1.31.0",
     "qrcode.react": "4.2.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
