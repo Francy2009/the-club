@@ -46,3 +46,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Esegue anche la build in modalità Tauri, che attiva il prerendering SPA.
+      # È il percorso che `npm run build` non tocca, e in cui è passata inosservata
+      # la regressione di @tanstack/react-router 1.170.25 (vedi CHANGELOG 2.0.3).
+      - name: Build (Tauri mode)
+        run: npm run build:tauri
