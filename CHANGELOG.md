@@ -7,6 +7,22 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-08-17
+
+Release di sola manutenzione: nessuna modifica funzionale né all'interfaccia utente. Raccoglie tre aggiornamenti di dipendenze a basso rischio già proposti da Dependabot.
+
+### Aggiornato
+- **@tanstack/react-router** aggiornato da 1.170.16 a 1.170.25 (patch).
+- **@tanstack/router-plugin** aggiornato da 1.168.18 a 1.168.29 (patch).
+- **lucide-react** aggiornato da 1.23.0 a 1.31.0: aggiornamento minor, tutte le icone usate dal progetto continuano a risolversi, verificato con `tsc --noEmit`.
+
+### Tecnico
+- `@tanstack/react-start` 1.168.26 richiede esattamente `@tanstack/react-router` 1.170.16, quindi il lockfile contiene ora copie annidate di quella versione. Il plugin Vite di TanStack Start applica `resolve.dedupe` su `@tanstack/react-router`, perciò il bundle client e server continua a usarne una sola copia.
+- Allineato a 2.0.2 il numero di versione nel footer della pagina in `docs/`, rimasto fermo a 2.0.0.
+
+### Sicurezza
+- Nessuna vulnerabilità nota: `npm audit --audit-level=moderate` e `cargo audit` puliti.
+
 ## [2.0.1] - 2026-08-09
 
 Release di sola manutenzione: nessuna modifica funzionale né all'interfaccia utente. Chiude tutte le vulnerabilità note segnalate da `npm audit` e `cargo audit`.
@@ -146,7 +162,8 @@ Prima release pubblica.
 - TypeScript strict mode
 - Tailwind CSS
 
-[Unreleased]: https://github.com/Francy2009/The-Club/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/Francy2009/The-Club/compare/v2.0.2...HEAD
+[2.0.2]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.2
 [2.0.1]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.1
 [2.0.0]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.0
 [1.1.2]: https://github.com/Francy2009/The-Club/releases/tag/v1.1.2
