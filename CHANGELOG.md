@@ -7,6 +7,21 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-08-17
+
+Release correttiva: ripristina la build desktop, rimasta rotta in 2.0.2. Nessuna modifica funzionale né all'interfaccia utente.
+
+### Corretto
+- **@tanstack/react-router** riportato da 1.170.25 a 1.170.16. Le versioni dalla 1.170.25 in poi fanno fallire `npm run build:tauri` durante il prerendering SPA con `TypeError: matchedRoutes is not iterable` in `handleServerRoutes`, impedendo la creazione dei pacchetti desktop. Il problema riguarda solo la modalità Tauri: la build web (`npm run build`) non attraversa quel percorso e passava senza errori. Verificato per bisection che la causa è esclusivamente `@tanstack/react-router`, e che il difetto è ancora presente nella 1.170.29, l'ultima patch pubblicata.
+- **@tanstack/router-plugin** riportato da 1.168.29 a 1.168.18. Non è coinvolto nella regressione, ma la 1.168.29 dichiara come peer `@tanstack/react-router@^1.170.25`: tenerlo aggiornato con il router bloccato alla 1.170.16 rende l'albero irrisolvibile e fa fallire `npm ci`. I due pacchetti vanno mossi in coppia, quando il bug a monte sarà risolto.
+
+### Tecnico
+- La CI ora esegue anche `npm run build:tauri` oltre a `npm run build`. È il passo che mancava: la regressione di 2.0.2 aveva superato typecheck, test e build web, ed è emersa solo durante il workflow di release, a tag già pubblicato.
+- Dei tre aggiornamenti di 2.0.2 sopravvive quindi il solo **lucide-react** 1.31.0, confermato funzionante.
+
+### Nota sui pacchetti
+- Per la 2.0.2 non è stato pubblicato alcun binario: i tre job di release (Windows, macOS Intel, macOS aarch64) sono falliti tutti nello stesso punto e nessuna GitHub Release è stata creata. La 2.0.3 è la prima versione installabile successiva alla 2.0.1.
+
 ## [2.0.2] - 2026-08-17
 
 Release di sola manutenzione: nessuna modifica funzionale né all'interfaccia utente. Raccoglie tre aggiornamenti di dipendenze a basso rischio già proposti da Dependabot.
@@ -162,7 +177,8 @@ Prima release pubblica.
 - TypeScript strict mode
 - Tailwind CSS
 
-[Unreleased]: https://github.com/Francy2009/The-Club/compare/v2.0.2...HEAD
+[Unreleased]: https://github.com/Francy2009/The-Club/compare/v2.0.3...HEAD
+[2.0.3]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.3
 [2.0.2]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.2
 [2.0.1]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.1
 [2.0.0]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.0
