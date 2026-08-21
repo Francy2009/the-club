@@ -24,7 +24,7 @@
     "@tailwindcss/vite": "4.3.0",
     "@tanstack/react-router": "1.170.16",
     "@tanstack/react-router-ssr-query": "1.167.1",
-    "@tanstack/react-start": "1.168.26",
+    "@tanstack/react-start": "1.168.46",
     "@tanstack/router-plugin": "1.168.18",
     "@tauri-apps/api": "^2.11.1",
     "html5-qrcode": "^2.3.8",
