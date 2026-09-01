@@ -26,6 +26,7 @@ desktop-db.json.tmp
 
 # Tauri/Rust build output
 src-tauri/target/
+src-tauri/gen/schemas/
 
 # Local exports/backups (legacy and current names)
 gestore-pub-backup-*.json

@@ -9,38 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SetupRouteImport } from './routes/setup'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as AdminScannerRouteImport } from './routes/admin/scanner'
-import { Route as AdminRiepilogoRouteImport } from './routes/admin/riepilogo'
-import { Route as AdminPresenzeRouteImport } from './routes/admin/presenze'
-import { Route as AdminImpostazioniRouteImport } from './routes/admin/impostazioni'
-import { Route as AdminCreateRouteImport } from './routes/admin/create'
 import { Route as AdminAttendanceRouteImport } from './routes/admin/attendance'
+import { Route as AdminCreateRouteImport } from './routes/admin/create'
+import { Route as AdminImpostazioniRouteImport } from './routes/admin/impostazioni'
+import { Route as AdminPresenzeRouteImport } from './routes/admin/presenze'
+import { Route as AdminRiepilogoRouteImport } from './routes/admin/riepilogo'
+import { Route as AdminScannerRouteImport } from './routes/admin/scanner'
 
-const SetupRoute = SetupRouteImport.update({
-  id: '/setup',
-  path: '/setup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -48,9 +33,24 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -58,24 +58,9 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminScannerRoute = AdminScannerRouteImport.update({
-  id: '/scanner',
-  path: '/scanner',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminRiepilogoRoute = AdminRiepilogoRouteImport.update({
-  id: '/riepilogo',
-  path: '/riepilogo',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPresenzeRoute = AdminPresenzeRouteImport.update({
-  id: '/presenze',
-  path: '/presenze',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminImpostazioniRoute = AdminImpostazioniRouteImport.update({
-  id: '/impostazioni',
-  path: '/impostazioni',
+const AdminAttendanceRoute = AdminAttendanceRouteImport.update({
+  id: '/attendance',
+  path: '/attendance',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCreateRoute = AdminCreateRouteImport.update({
@@ -83,9 +68,24 @@ const AdminCreateRoute = AdminCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminAttendanceRoute = AdminAttendanceRouteImport.update({
-  id: '/attendance',
-  path: '/attendance',
+const AdminImpostazioniRoute = AdminImpostazioniRouteImport.update({
+  id: '/impostazioni',
+  path: '/impostazioni',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPresenzeRoute = AdminPresenzeRouteImport.update({
+  id: '/presenze',
+  path: '/presenze',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRiepilogoRoute = AdminRiepilogoRouteImport.update({
+  id: '/riepilogo',
+  path: '/riepilogo',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminScannerRoute = AdminScannerRouteImport.update({
+  id: '/scanner',
+  path: '/scanner',
   getParentRoute: () => AdminRoute,
 } as any)
 
@@ -192,32 +192,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/setup': {
-      id: '/setup'
-      path: '/setup'
-      fullPath: '/setup'
-      preLoaderRoute: typeof SetupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -227,11 +206,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -241,32 +241,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/scanner': {
-      id: '/admin/scanner'
-      path: '/scanner'
-      fullPath: '/admin/scanner'
-      preLoaderRoute: typeof AdminScannerRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/riepilogo': {
-      id: '/admin/riepilogo'
-      path: '/riepilogo'
-      fullPath: '/admin/riepilogo'
-      preLoaderRoute: typeof AdminRiepilogoRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/presenze': {
-      id: '/admin/presenze'
-      path: '/presenze'
-      fullPath: '/admin/presenze'
-      preLoaderRoute: typeof AdminPresenzeRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/impostazioni': {
-      id: '/admin/impostazioni'
-      path: '/impostazioni'
-      fullPath: '/admin/impostazioni'
-      preLoaderRoute: typeof AdminImpostazioniRouteImport
+    '/admin/attendance': {
+      id: '/admin/attendance'
+      path: '/attendance'
+      fullPath: '/admin/attendance'
+      preLoaderRoute: typeof AdminAttendanceRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/create': {
@@ -276,11 +255,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCreateRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/attendance': {
-      id: '/admin/attendance'
-      path: '/attendance'
-      fullPath: '/admin/attendance'
-      preLoaderRoute: typeof AdminAttendanceRouteImport
+    '/admin/impostazioni': {
+      id: '/admin/impostazioni'
+      path: '/impostazioni'
+      fullPath: '/admin/impostazioni'
+      preLoaderRoute: typeof AdminImpostazioniRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/presenze': {
+      id: '/admin/presenze'
+      path: '/presenze'
+      fullPath: '/admin/presenze'
+      preLoaderRoute: typeof AdminPresenzeRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/riepilogo': {
+      id: '/admin/riepilogo'
+      path: '/riepilogo'
+      fullPath: '/admin/riepilogo'
+      preLoaderRoute: typeof AdminRiepilogoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/scanner': {
+      id: '/admin/scanner'
+      path: '/scanner'
+      fullPath: '/admin/scanner'
+      preLoaderRoute: typeof AdminScannerRouteImport
       parentRoute: typeof AdminRoute
     }
   }
