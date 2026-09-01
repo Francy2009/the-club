@@ -20,13 +20,15 @@
     "db:reset-admin": "jiti prisma/reset-admin-password.ts"
   },
   "dependencies": {
-    "@prisma/client": "6.19.3",
+    "@prisma/adapter-better-sqlite3": "7.10.0",
+    "@prisma/client": "7.10.0",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/react-router": "1.170.32",
     "@tanstack/react-router-ssr-query": "1.167.2",
     "@tanstack/react-start": "1.168.49",
     "@tanstack/router-plugin": "1.168.35",
     "@tauri-apps/api": "^2.11.1",
+    "better-sqlite3": "12.11.1",
     "html5-qrcode": "^2.3.8",
     "jspdf": "4.2.1",
     "lucide-react": "1.38.0",
@@ -48,7 +50,7 @@
     "@vitejs/plugin-basic-ssl": "2.3.0",
     "@vitejs/plugin-react": "6.1.1",
     "jsdom": "30.0.1",
-    "prisma": "6.19.3",
+    "prisma": "7.10.0",
     "typescript": "7.0.2",
     "vite": "^8.1.0",
     "vitest": "4.1.11"

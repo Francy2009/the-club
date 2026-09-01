@@ -1,7 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '../src/lib/prisma-client';
 import crypto from 'node:crypto';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 const PASSWORD_HASH_VERSION = 'pbkdf2_sha512';
 const PASSWORD_HASH_ITERATIONS = 310000;
 const PASSWORD_HASH_KEY_LENGTH = 64;
