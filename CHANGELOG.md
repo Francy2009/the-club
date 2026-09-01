@@ -7,7 +7,9 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
-Manutenzione dipendenze. Nessuna modifica funzionale né all'interfaccia utente.
+## [3.0.0] - 2026-09-01
+
+Manutenzione dipendenze. Nessuna modifica funzionale né all'interfaccia utente: il salto di major segnala l'entità del rinnovamento interno — Prisma 7 con driver adapter, TypeScript 7, e la prima dipendenza nativa nell'albero — non un cambio di comportamento dell'app.
 
 ### Sicurezza
 - **deepmerge-ts** forzato a 8.0.2 tramite `overrides`: risolve l'esaurimento dello stack nel merge di grafi di oggetti ricorsivi ([GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx)). Arriva come dipendenza transitiva di `prisma` attraverso `@prisma/config`, che la pinna alla 7.1.5 esatta: passare a Prisma 7 non avrebbe risolto nulla, perché anche `@prisma/config` 7.9.1 pinna la stessa versione. Senza override `npm audit --audit-level=moderate` falliva, e con esso sia la CI su ogni PR sia il workflow di release, che esegue lo stesso controllo prima di costruire i pacchetti.
@@ -205,6 +207,7 @@ Prima release pubblica.
 - Tailwind CSS
 
 [Unreleased]: https://github.com/Francy2009/The-Club/compare/v2.0.3...HEAD
+[3.0.0]: https://github.com/Francy2009/The-Club/releases/tag/v3.0.0
 [2.0.3]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.3
 [2.0.2]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.2
 [2.0.1]: https://github.com/Francy2009/The-Club/releases/tag/v2.0.1
