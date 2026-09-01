@@ -3,7 +3,7 @@ import { defineConfig } from 'prisma/config'
 
 // Prisma 7 non accetta piu' `url` dentro `datasource` nello schema: la URL vive
 // qui e serve solo alla CLI (migrate, db push, studio). Il client a runtime non
-// la usa affatto, riceve un driver adapter — vedi src/lib/db.ts.
+// la usa affatto, riceve un driver adapter — vedi src/lib/prisma-client.ts.
 //
 // Il default punta allo stesso file di prima (prisma/dev.db), cosi' il
 // comportamento di sviluppo non cambia; DATABASE_URL lo sovrascrive.
