@@ -21,6 +21,7 @@ Manutenzione dipendenze. Nessuna modifica funzionale né all'interfaccia utente.
 - **react** e **react-dom** 19.2.7 → 19.2.8, **lucide-react** 1.31.0 → 1.38.0, **tailwindcss** e **@tailwindcss/vite** 4.3.0 → 4.3.3.
 - Dipendenze di sviluppo: **vite** 8.1.0 → 8.2.2 (già dentro il range `^8.1.0`, ora fissata nel lockfile), **vitest** 4.1.9 → 4.1.11, **@vitejs/plugin-react** 6.0.2 → 6.1.1, **@testing-library/react** 16.3.2 → 16.3.3, **@types/react** 19.2.17 → 19.2.18, **@types/react-dom** 19.2.3 → 19.2.5.
 - **@types/node** 22.19.19 → 24.13.3 e **jsdom** 29.1.1 → 30.0.1: due major, entrambi di solo sviluppo. Il salto di `@types/node` allinea i tipi alla versione di Node effettivamente usata da CI e release (24), prima disallineata di due major.
+- **TypeScript** 6.0.3 → 7.0.2 (major). È il port nativo del compilatore, e cambia il modo in cui `tsc` viene distribuito: non più JavaScript, ma un binario per piattaforma tirato dentro come `optionalDependencies` di `typescript`. Per questo repo conta, perché `release.yml` esegue `npm ci` e il typecheck anche sui runner Windows e macOS: il lockfile contiene tutte e 20 le varianti con i rispettivi vincoli `os`/`cpu`, comprese `win32-x64`, `darwin-x64` e `darwin-arm64`, quindi ogni runner installa la sua. `tsc --noEmit` passa sulla configurazione esistente senza errori né avvisi; build e test non passano da `tsc` (transpila Vite/esbuild) e restano invariati.
 - **GitHub Actions**: `actions/setup-node` 6 → 7, `tauri-apps/tauri-action` 0 → 1. Nessuno degli input rimossi o rinominati dalla v1 (`includeRelease`, `includeDebug`, `assetNamePattern`, `includeUpdaterJson`) è usato da `release.yml`, che passa solo `tagName`, `releaseName`, `releaseBody` e `args`.
 - **Rust**: `cargo update` sull'intero albero (125 crate), tra cui `tauri-plugin-single-instance` 2.4.3 → 2.4.4.
 
@@ -31,7 +32,6 @@ Manutenzione dipendenze. Nessuna modifica funzionale né all'interfaccia utente.
 
 ### Rimandato
 - **Prisma 7 e 8** (`prisma`, `@prisma/client`): resta la migrazione già descritta in 2.0.1, la 7 non accetta più `url` nel blocco `datasource` e richiede un `prisma.config.ts` più un driver adapter passato al costruttore di `PrismaClient`. Nel frattempo la 7 è arrivata alla 7.10.0 e la 8 è in release candidate.
-- **TypeScript 7**: `tsc --noEmit` passa pulito anche con la 7.0.2, ma è il compilatore che fa da gate dei tipi a tutto il progetto e merita un cambio isolato, non mescolato a un aggiornamento di dipendenze.
 
 ## [2.0.3] - 2026-08-17
 
