@@ -4,16 +4,45 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
+    groups:
+      # I pacchetti TanStack si pinnano a vicenda: @tanstack/react-start
+      # dipende da una versione *esatta* di @tanstack/react-router. Aggiornarli
+      # in PR separate rende l'albero incoerente e ha gia' rotto la build
+      # desktop nella 2.0.2 (vedi CHANGELOG). Devono muoversi insieme.
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      # Tutto il resto di minor e patch in un'unica PR. I major restano PR
+      # singole, perche' vanno valutati uno per uno.
+      minor-e-patch:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@tanstack/*"
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: cargo
     directory: /src-tauri
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      cargo-minor-e-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"

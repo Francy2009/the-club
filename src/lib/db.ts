@@ -1,8 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import path from 'node:path';
-
-// Dynamically resolve the absolute path to dev.db in the project root's prisma folder
-const dbPath = path.resolve(process.cwd(), 'prisma/dev.db');
+import { createPrismaClient } from './prisma-client';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -10,12 +7,7 @@ const globalForPrisma = globalThis as unknown as {
 
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: `file:${dbPath}`,
-      },
-    },
+  createPrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query'] : [],
   });
 

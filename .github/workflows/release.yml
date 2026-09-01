@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'npm'
@@ -89,13 +89,20 @@ jobs:
         run: npm run build:tauri
 
       - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'The Club ${{ github.ref_name }}'
+          # Un tag semver con suffisso di prerelease (es. v2.0.4-test.1) crea una
+          # prerelease GitHub: /releases/latest non la restituisce e update-check.ts
+          # la scarta comunque, quindi non viene mai proposta come aggiornamento a
+          # chi ha l'app installata. Un tag pulito (v2.0.4) resta release normale.
+          prerelease: ${{ contains(github.ref_name, '-') }}
           releaseBody: |
+            ${{ contains(github.ref_name, '-') && '> **Build di test, da non scaricare.** Pacchetti non firmati, costruiti da un ramo di sviluppo per una verifica interna, e questa prerelease viene eliminata a test concluso. Per installare l''app usa l''ultima versione stabile: https://github.com/Francy2009/The-Club/releases/latest' || '' }}
+
             ## The Club ${{ github.ref_name }}
 
             ### Download
