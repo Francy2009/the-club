@@ -7,6 +7,15 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+## [3.0.2] - 2026-09-09
+
+Release di manutenzione. Nessuna modifica al comportamento dell'app o ai pacchetti distribuiti.
+
+### Aggiornato
+- **@types/node** 24.13.3 → 26.4.1: definizioni TypeScript usate solo nello sviluppo e nella CI. La pipeline completa — inclusi typecheck, test e build Tauri — è stata rieseguita con esito positivo.
+
+## [3.0.1] - 2026-09-09
+
 ### Sicurezza
 - **mysql2** forzato a 3.24.3 tramite `overrides`: risolve il downgrade del plugin di autenticazione a `mysql_clear_password`, che permette a un server MySQL ostile o a un MITM di farsi inviare la password in chiaro ([GHSA-3f6p-5ww8-9rcr](https://github.com/advisories/GHSA-3f6p-5ww8-9rcr), alta), e l'inflate zlib senza limiti nel gestore del protocollo compresso, sfruttabile come decompression bomb ([GHSA-rgwj-5xj2-c3m3](https://github.com/advisories/GHSA-rgwj-5xj2-c3m3), moderata). Arriva come dipendenza transitiva di `prisma`, che lo pinna alla 3.15.3 *esatta*: come già per `deepmerge-ts` nella 3.0.0, aggiornare Prisma non avrebbe risolto nulla e l'unica strada è l'override. Senza, `npm audit --audit-level=moderate` fallisce, e con esso sia la CI su ogni PR sia il workflow di release, che esegue lo stesso controllo prima di costruire i pacchetti.
 - **La versione minima non è la 3.22.0 indicata dall'avviso Dependabot.** Quella chiude la sola GHSA-3f6p-5ww8-9rcr; la seconda advisory copre l'intero range `<=3.23.0`, quindi con la 3.22.0 l'audit sarebbe rimasto rosso. Il primo valore che chiude entrambe è la 3.24.0, e qui si è scelta la 3.24.3, ultima stabile.
