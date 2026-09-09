@@ -7,6 +7,15 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+### Sicurezza
+- **mysql2** forzato a 3.24.3 tramite `overrides`: risolve il downgrade del plugin di autenticazione a `mysql_clear_password`, che permette a un server MySQL ostile o a un MITM di farsi inviare la password in chiaro ([GHSA-3f6p-5ww8-9rcr](https://github.com/advisories/GHSA-3f6p-5ww8-9rcr), alta), e l'inflate zlib senza limiti nel gestore del protocollo compresso, sfruttabile come decompression bomb ([GHSA-rgwj-5xj2-c3m3](https://github.com/advisories/GHSA-rgwj-5xj2-c3m3), moderata). Arriva come dipendenza transitiva di `prisma`, che lo pinna alla 3.15.3 *esatta*: come già per `deepmerge-ts` nella 3.0.0, aggiornare Prisma non avrebbe risolto nulla e l'unica strada è l'override. Senza, `npm audit --audit-level=moderate` fallisce, e con esso sia la CI su ogni PR sia il workflow di release, che esegue lo stesso controllo prima di costruire i pacchetti.
+- **La versione minima non è la 3.22.0 indicata dall'avviso Dependabot.** Quella chiude la sola GHSA-3f6p-5ww8-9rcr; la seconda advisory copre l'intero range `<=3.23.0`, quindi con la 3.22.0 l'audit sarebbe rimasto rosso. Il primo valore che chiude entrambe è la 3.24.0, e qui si è scelta la 3.24.3, ultima stabile.
+- Nessuna delle due vulnerabilità era raggiungibile dall'app: `prisma/schema.prisma` dichiara `provider = "sqlite"` e il client usa `@prisma/adapter-better-sqlite3`, quindi il driver MySQL non viene mai caricato e nel codice non compare alcun riferimento a MySQL. L'override serve a sbloccare l'audit, non a chiudere un percorso sfruttabile in produzione.
+
+### Tecnico
+- L'override tocca il solo sottoalbero di `mysql2` (3.15.3 → 3.24.3): escono `denque`, `seq-queue` e `sqlstring`, entra `sql-escaper`, per tre pacchetti netti in meno. Nessun'altra dipendenza cambia versione.
+- Verificato in locale sull'intera pipeline della CI: `npm ci`, `npm audit --audit-level=moderate` (0 vulnerabilità), `prisma generate`, `typecheck`, test 12/12, `build` e `build:tauri` con prerendering completato.
+
 ## [3.0.0] - 2026-09-01
 
 Manutenzione dipendenze. Nessuna modifica funzionale né all'interfaccia utente: il salto di major segnala l'entità del rinnovamento interno — Prisma 7 con driver adapter, TypeScript 7, e la prima dipendenza nativa nell'albero — non un cambio di comportamento dell'app.
