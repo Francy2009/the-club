@@ -7,6 +7,9 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ## [Unreleased]
 
+### Tecnico
+- **Il workflow di release non rigenera più `Cargo.lock`.** `release.yml` eseguiva `cargo generate-lockfile` *dopo* `cargo audit`: la build distribuita veniva quindi compilata da un albero di dipendenze risolto al momento del tag, diverso sia da quello committato sia da quello controllato dall'audit. I pin potevano sparire proprio nei pacchetti che arrivano agli utenti — per esempio `tokio` 1.54.1, che chiude l'unsoundness di `AsyncFd::new` ([RUSTSEC-2026-0386](https://rustsec.org/advisories/RUSTSEC-2026-0386)). Lo step è sostituito da `cargo metadata --locked`, che fallisce se `Cargo.lock` non è allineato a `Cargo.toml`, e `cargo check` ora gira con `--locked`. Lo stesso controllo è stato aggiunto in `ci.yml`, così un lockfile disallineato emerge sulla PR in pochi secondi invece che al momento del tag. Verificato in locale: il lockfile attuale passa, un lockfile con un pacchetto rimosso fa fallire il comando con `--locked`.
+
 ## [3.0.3] - 2026-10-29
 
 Release di manutenzione e sicurezza. Nessuna modifica funzionale né all'interfaccia utente, nessun cambio di schema del database, nessun file dati toccato: chiude tutte le voci segnalate da `npm audit` sul lockfile della 3.0.2 (19 voci: 9 critiche, 6 alte, 4 moderate) e riconcilia le PR Dependabot aperte in un unico intervento verificabile.
