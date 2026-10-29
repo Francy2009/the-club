@@ -38,6 +38,14 @@ jobs:
           cargo install cargo-audit
           cargo audit
 
+      # `cargo audit` controlla il Cargo.lock committato: se il lockfile fosse
+      # disallineato rispetto a Cargo.toml, la release (che ora usa `--locked`)
+      # compilerebbe un albero diverso. Fallisce qui, in pochi secondi e senza
+      # compilare, invece che al momento del tag.
+      - name: Check Cargo.lock is in sync
+        working-directory: src-tauri
+        run: cargo metadata --locked --format-version 1 > /dev/null
+
       - name: Typecheck
         run: npm run typecheck
 

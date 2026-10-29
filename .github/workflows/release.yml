@@ -79,11 +79,18 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Generate Cargo lockfile
-        run: cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
+      # Il lockfile è committato e deve restare quello che viene auditato e
+      # compilato. Fino alla 3.0.3 qui c'era `cargo generate-lockfile`, eseguito
+      # DOPO `cargo audit`: la release risolveva quindi un albero di dipendenze
+      # nuovo, diverso da quello controllato, e i pin sparivano proprio nella
+      # build distribuita. Ora non si rigenera nulla: se `Cargo.lock` non è
+      # allineato a `Cargo.toml`, `--locked` fa fallire il job subito.
+      - name: Check Cargo.lock is in sync
+        working-directory: src-tauri
+        run: cargo metadata --locked --format-version 1 > /dev/null
 
       - name: Check Rust crate
-        run: cargo check --manifest-path src-tauri/Cargo.toml
+        run: cargo check --locked --manifest-path src-tauri/Cargo.toml
 
       - name: Build frontend
         run: npm run build:tauri
