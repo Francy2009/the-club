@@ -504,7 +504,7 @@ function serializeAuthenticatedMember(member: Awaited<ReturnType<typeof getBoots
 
 // Password complexity Zod schema (min 8 chars, 1 uppercase, 1 number, 1 symbol)
 export const setupValidator = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       username: requiredString(data, 'username', 80),
@@ -583,7 +583,7 @@ export const setupValidator = createServerFn({ method: 'POST' })
 
 // Admin-only: change the current administrator password after verifying the old one
 export const changeAdminPasswordFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       current_password: requiredString(data, 'current_password', 256),
@@ -646,7 +646,7 @@ export const changeAdminPasswordFn = createServerFn({ method: 'POST' })
   });
 
 export const changeAdminRecoveryPhraseFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       current_password: requiredString(data, 'current_password', 256),
@@ -710,7 +710,7 @@ export const changeAdminRecoveryPhraseFn = createServerFn({ method: 'POST' })
   });
 
 export const getRecoveryQuestionFn = createServerFn({ method: 'GET' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       username: requiredString(data, 'username', 80),
@@ -725,7 +725,7 @@ export const getRecoveryQuestionFn = createServerFn({ method: 'GET' })
   });
 
 export const recoverPasswordFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       username: requiredString(data, 'username', 80),
@@ -812,7 +812,7 @@ export const recoverPasswordFn = createServerFn({ method: 'POST' })
   });
 
 export const loginFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       username: requiredString(data, 'username', 80),
@@ -977,7 +977,7 @@ export const getCheckInMembersFn = createServerFn({ method: 'GET' })
 
 // Admin-guarded: Create user
 export const createMemberFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       first_name: requiredString(data, 'first_name', 80),
@@ -1084,7 +1084,7 @@ export const createMemberFn = createServerFn({ method: 'POST' })
 
 // Admin-guarded: Renew membership (with optional custom start date)
 export const renewMembershipFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       member_id: requiredString(data, 'member_id', 120),
@@ -1129,7 +1129,7 @@ export const renewMembershipFn = createServerFn({ method: 'POST' })
 
 // Admin-guarded: Delete member
 export const deleteMemberFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       member_id: requiredString(data, 'member_id', 120),
@@ -1163,7 +1163,7 @@ export const deleteMemberFn = createServerFn({ method: 'POST' })
 
 // Admin-guarded: Register QR scan / Attendance check-in
 export const registerAttendanceFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     const identifier = requiredString(data, 'identifier', 120);
     return { identifier };
@@ -1316,7 +1316,7 @@ export const getTodayAttendanceFn = createServerFn({ method: 'GET' })
 
 // Admin-guarded: Search persisted attendance logs by date range and member text
 export const getAttendanceLogsFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       date: optionalDateString(data, 'date'),
@@ -1377,7 +1377,7 @@ export const getAttendanceLogsFn = createServerFn({ method: 'POST' })
 
 // Admin-guarded: Monthly summary for current expiries and previous completed attendance month
 export const getMonthlySummaryFn = createServerFn({ method: 'GET' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       expiry_month_offset: typeof data.expiry_month_offset === 'number' ? data.expiry_month_offset : 0,
@@ -1502,7 +1502,7 @@ export const getMonthlySummaryFn = createServerFn({ method: 'GET' })
 
 // Admin-guarded: Delete attendance check-in
 export const deleteAttendanceFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     return {
       attendance_id: requiredString(data, 'attendance_id', 120),
@@ -1662,7 +1662,7 @@ export const exportBackupFn = createServerFn({ method: 'GET' })
   });
 
 export const restoreBackupFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => {
+  .validator((data: unknown) => {
     assertRecord(data);
     const backupText = data.backup;
     if (typeof backupText !== 'string' || backupText.length < 20) {
